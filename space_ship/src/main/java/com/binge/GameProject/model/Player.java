@@ -33,8 +33,9 @@ public class Player extends GameObject {
         this.gameManager = gm;
 
         // 嘗試使用 OBJImporter 載入戰鬥機模型
-        //String modelPath = "src/main/java/com/binge/GameProject/resource/model/SpaceFighter.obj";
-        javafx.scene.shape.MeshView meshView = com.binge.GameProject.utils.OBJImporter.loadModel("SpaceFighter.obj");
+        // String modelPath = "src/com/binge/GameProject/resource/model/SpaceFighter.obj";
+        javafx.scene.shape.MeshView meshView = com.binge.GameProject.utils.OBJImporter.loadModel("/model/SpaceFighter.obj");
+
 
         Group wrapper = new Group();
 
