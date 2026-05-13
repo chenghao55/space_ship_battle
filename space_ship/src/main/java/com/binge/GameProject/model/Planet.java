@@ -1,0 +1,49 @@
+package com.binge.GameProject.model;
+
+import javafx.scene.paint.Color;
+import javafx.scene.paint.PhongMaterial;
+import javafx.scene.shape.Sphere;
+import javafx.scene.transform.Rotate;
+
+// Planet 代表遊戲中的星球 (包含提供光照的恆星，或提供引力的行星)
+public class Planet extends GameObject {
+    private double mass;   // 星球的質量 (質量越大，引力越強)
+    private double radius; // 星球的半徑 (大小)
+    private Rotate rotateTransform; // 用來讓星球自轉的變形器
+
+    // 建構子：設定星球的位置、大小、質量與顏色
+    public Planet(double x, double y, double radius, double mass, Color color) {
+        this.position.set(x, y); // 設定座標
+        this.mass = mass;
+        this.radius = radius;
+        
+        // 建立一個 3D 球體來代表星球
+        Sphere sphere = new Sphere(radius);
+        // 設定星球的材質和顏色
+        PhongMaterial mat = new PhongMaterial(color);
+        mat.setSpecularColor(color.brighter()); // 讓星球表面有些微的高光反光
+        sphere.setMaterial(mat); // 套用材質
+        
+        this.view = sphere; // 將球體設定為畫面代表
+        
+        // 加入 Y 軸的旋轉變形器，用來模擬星球自轉
+        this.rotateTransform = new Rotate(0, Rotate.Y_AXIS);
+        this.view.getTransforms().add(rotateTransform);
+        
+        // 更新畫面到正確位置
+        updateView();
+    }
+
+    // 每幀更新星球的邏輯
+    @Override
+    public void update(double dt) {
+        // 讓星球隨著時間緩慢自轉 (每秒轉 10 度)
+        rotateTransform.setAngle(rotateTransform.getAngle() + dt * 10);
+    }
+
+    // 提供給外部 (PhysicsEngine) 取得星球質量的方法，用來計算引力
+    public double getMass() { return mass; }
+    
+    // 提供給外部取得星球半徑的方法，用來判斷是否撞到星球表面
+    public double getRadius() { return radius; }
+}
