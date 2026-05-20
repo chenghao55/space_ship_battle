@@ -177,6 +177,14 @@ public class Player extends GameObject {
     // 發射子彈的邏輯 (雙管雷射)
     private void fireBullet() {
         if (gameManager != null) {
+            if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                com.binge.GameProject.audio.AudioSystem.getInstance().playSpatialClip(
+                    com.binge.GameProject.audio.AudioSystem.getInstance().getLaserSfx(),
+                    position,
+                    this,
+                    1.0
+                );
+            }
             double rad = Math.toRadians(rotationAngle);
             Vector2D forward = new Vector2D(Math.sin(rad), Math.cos(rad));
             Vector2D right = new Vector2D(Math.cos(rad), -Math.sin(rad)); // 右側向量

@@ -131,8 +131,19 @@ public class MissionResultUI {
         btn.setFont(new Font("Consolas", 18));
         btn.setStyle("-fx-background-color: transparent; -fx-text-fill: #00FFFF; -fx-border-color: #00FFFF; -fx-border-width: 2; -fx-padding: 10 30;");
         
-        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #00FFFF; -fx-text-fill: #000000; -fx-border-color: #00FFFF; -fx-border-width: 2; -fx-padding: 10 30;"));
+        btn.setOnMouseEntered(e -> {
+            btn.setStyle("-fx-background-color: #00FFFF; -fx-text-fill: #000000; -fx-border-color: #00FFFF; -fx-border-width: 2; -fx-padding: 10 30;");
+            if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                com.binge.GameProject.audio.AudioSystem.getInstance().playSwitch();
+            }
+        });
         btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: transparent; -fx-text-fill: #00FFFF; -fx-border-color: #00FFFF; -fx-border-width: 2; -fx-padding: 10 30;"));
+        
+        btn.setOnMousePressed(e -> {
+            if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                com.binge.GameProject.audio.AudioSystem.getInstance().playButtonPress();
+            }
+        });
         
         return btn;
     }

@@ -41,7 +41,7 @@ public class GameManager {
     private Player player;
     private final Group worldRoot;
     private final CameraManager cameraManager;
-    private double remainingTime = 90.0;
+    private double remainingTime = 180.0;
     private ScoreResult scoreResult;
 
     public GameManager(Group worldRoot, CameraManager cameraManager) {
@@ -54,7 +54,7 @@ public class GameManager {
         player = new Player(0, -9000, this);
         addGameObject(player);
         levelManager.buildDemoLevel(this::addGameObject);
-        remainingTime = 90.0;
+        remainingTime = 180.0;
         missionManager.reset();
         timeScaleController.reset();
         scoreResult = null;
@@ -83,7 +83,15 @@ public class GameManager {
 
         updateObjects(scaledDt);
         rescueManager.update(player, levelManager.getIdols(), scaledDt);
-        audioSystem.updateIdolGroupVoices(levelManager.getIdolGroups(), player);
+        audioSystem.updateIdolGroupVoices(levelManager.getIdolGroups(), player, scaledDt);
+
+        // 更新推力音效
+        boolean isAcc = InputManager.getInstance().isPressed("W") || InputManager.getInstance().isPressed("UP");
+        audioSystem.updateEngineSound(isAcc, player.isBoosting());
+
+        // 更新敵人接近 3D 環繞感應音
+        audioSystem.updateEnemyAmbient(levelManager.getEnemies(), player);
+
         combatManager.update(player, levelManager.getEnemies(), dynamicObjects, staticObjects, scaledDt,
                 this::addGameObject,
                 () -> audioSystem.playLostVoice(rescueManager.loseLastRescued(player)),
@@ -93,6 +101,7 @@ public class GameManager {
         removeDeadObjects();
 
         if (!player.isAlive()) {
+            audioSystem.playExplosion();
             currentState = GameState.GAME_OVER;
             finishMission();
             return;

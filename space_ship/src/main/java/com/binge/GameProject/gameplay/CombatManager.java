@@ -31,10 +31,27 @@ public class CombatManager {
                 Vector2D direction = calculatePredictiveAim(enemy, player, distance);
                 adder.add(new EnemyBullet(enemy.getPosition().x, enemy.getPosition().y, direction.multiply(ENEMY_BULLET_SPEED)));
                 enemy.resetShootCooldown();
+                if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                    com.binge.GameProject.audio.AudioSystem.getInstance().playSpatialClip(
+                        com.binge.GameProject.audio.AudioSystem.getInstance().getLaserSfx(),
+                        enemy.getPosition(),
+                        player,
+                        0.7
+                    );
+                }
             }
 
             if (distance < 55) {
                 enemy.takeDamage(99);
+                if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                    com.binge.GameProject.audio.AudioSystem.getInstance().playHit();
+                    com.binge.GameProject.audio.AudioSystem.getInstance().playSpatialClip(
+                        com.binge.GameProject.audio.AudioSystem.getInstance().getExplosionSfx(),
+                        enemy.getPosition(),
+                        player,
+                        1.0
+                    );
+                }
                 damagePlayer(player, damageCallback, cameraManager, "COLLISION DAMAGE");
             }
         }
@@ -61,6 +78,22 @@ public class CombatManager {
                     if (enemy.getPosition().distance(bullet.getPosition()) < 48) {
                         enemy.takeDamage(1);
                         bullet.setDead(true);
+                        if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                            com.binge.GameProject.audio.AudioSystem.getInstance().playSpatialClip(
+                                com.binge.GameProject.audio.AudioSystem.getInstance().getHitSfx(),
+                                enemy.getPosition(),
+                                player,
+                                0.8
+                            );
+                            if (!enemy.isAlive()) {
+                                com.binge.GameProject.audio.AudioSystem.getInstance().playSpatialClip(
+                                    com.binge.GameProject.audio.AudioSystem.getInstance().getExplosionSfx(),
+                                    enemy.getPosition(),
+                                    player,
+                                    1.0
+                                );
+                            }
+                        }
                         warningText = "ENEMY HIT";
                         warningTimer = 0.8;
                         break;
@@ -70,6 +103,9 @@ public class CombatManager {
                 for (Hitbox hitbox : player.getFullBodyHitboxes()) {
                     if (hitbox.intersects(bullet.getPosition(), bullet.getRadius())) {
                         bullet.setDead(true);
+                        if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                            com.binge.GameProject.audio.AudioSystem.getInstance().playHit();
+                        }
                         damagePlayer(player, damageCallback, cameraManager, "INCOMING HIT");
                         break;
                     }
