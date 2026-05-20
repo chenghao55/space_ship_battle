@@ -16,13 +16,14 @@ public class MusicMixer {
         ambientVolume += (targetVolume - ambientVolume) * 0.08;
     }
 
-    public void setGroupSongVolume(String groupId, String songPath, double volume) {
+    public void setGroupSongVolume(String groupId, String songPath, double volume, double balance) {
         double clamped = Math.max(0, Math.min(1, volume));
         groupVolumes.put(groupId, clamped);
 
         MediaPlayer player = groupPlayers.computeIfAbsent(groupId, id -> createLoopingPlayer(songPath));
         if (player != null) {
             player.setVolume(clamped);
+            player.setBalance(Math.max(-1.0, Math.min(1.0, balance)));
             if (clamped > 0.01 && player.getStatus() != MediaPlayer.Status.PLAYING) {
                 player.play();
             } else if (clamped <= 0.01 && player.getStatus() == MediaPlayer.Status.PLAYING) {
@@ -31,8 +32,12 @@ public class MusicMixer {
         }
     }
 
+    public void setGroupSongVolume(String groupId, String songPath, double volume) {
+        setGroupSongVolume(groupId, songPath, volume, 0.0);
+    }
+
     public void setGroupSongVolume(String groupId, double volume) {
-        setGroupSongVolume(groupId, "/music/supernova.mp3", volume);
+        setGroupSongVolume(groupId, "/music/supernova.mp3", volume, 0.0);
     }
 
     private MediaPlayer createLoopingPlayer(String songPath) {

@@ -21,7 +21,21 @@ public class AudioSystem {
         for (IdolGroup group : groups) {
             Idol nearest = group.getNearestDetectableIdol(player);
             double volume = voiceController.calculateVolume(nearest, player);
-            mixer.setGroupSongVolume(group.getGroupId(), group.getSongPath(), volume);
+            
+            // 計算左右聲道平衡度 (Stereo Pan Balance)
+            double balance = 0.0;
+            if (nearest != null && player != null) {
+                Vector2D diff = nearest.getPosition().subtract(player.getPosition());
+                double dist = diff.magnitude();
+                if (dist > 0.1) {
+                    Vector2D dir = diff.normalize();
+                    double rad = Math.toRadians(player.getRotationAngle());
+                    Vector2D right = new Vector2D(Math.cos(rad), -Math.sin(rad));
+                    balance = dir.dot(right);
+                }
+            }
+            
+            mixer.setGroupSongVolume(group.getGroupId(), group.getSongPath(), volume, balance);
             loudest = Math.max(loudest, volume);
         }
         updateAmbient(loudest);
