@@ -163,6 +163,9 @@ public class MainMenuUI {
                 bg.setEffect(hoverGlow);
                 setTranslateX(10); // 些微向右滑動
                 setCursor(javafx.scene.Cursor.HAND);
+                if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                    com.binge.GameProject.audio.AudioSystem.getInstance().playSwitch();
+                }
             });
             
             setOnMouseExited(e -> {
@@ -170,6 +173,12 @@ public class MainMenuUI {
                 bg.setStroke(Color.web("#005588"));
                 bg.setEffect(null);
                 setTranslateX(0);
+            });
+
+            setOnMousePressed(e -> {
+                if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                    com.binge.GameProject.audio.AudioSystem.getInstance().playButtonPress();
+                }
             });
         }
     }

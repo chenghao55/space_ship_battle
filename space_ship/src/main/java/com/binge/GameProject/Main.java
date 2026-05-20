@@ -9,6 +9,7 @@ import com.binge.GameProject.rendering.ParticleRenderer;
 import com.binge.GameProject.ui.HUDManager;
 import com.binge.GameProject.ui.MainMenuUI;
 import com.binge.GameProject.ui.MissionResultUI;
+import com.binge.GameProject.audio.AudioSystem;
 import javafx.application.Application;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
@@ -81,6 +82,9 @@ public class Main extends Application {
         mainMenuUI.setOnStartMission(() -> {
             mainMenuUI.fadeOutAndHide();
             gameManager.setCurrentState(com.binge.GameProject.engine.GameState.STARTING_TRANSITION);
+            if (AudioSystem.getInstance() != null) {
+                AudioSystem.getInstance().stopMenuMusic();
+            }
             cameraManager.playStartTransition(() -> {
                 // 過場動畫結束，正式進入遊戲
                 gameManager.setCurrentState(com.binge.GameProject.engine.GameState.PLAYING);
@@ -101,12 +105,18 @@ public class Main extends Application {
             cameraManager.setMenuMode(true);
             mainMenuUI.fadeInAndShow();
             gameLoop.resetMissionClearTrigger();
+            if (AudioSystem.getInstance() != null) {
+                AudioSystem.getInstance().playMenuMusic();
+            }
         });
 
         gameLoop.start(); // 開始運作
+        if (AudioSystem.getInstance() != null) {
+            AudioSystem.getInstance().playMenuMusic();
+        }
 
         // 8. 顯示視窗設定
-        primaryStage.setTitle("Orbital Hunter / Gravity Drift"); // 設定視窗標題
+        primaryStage.setTitle("Galactic Harmony"); // 設定視窗標題
         primaryStage.setScene(scene); // 將場景放入視窗
         primaryStage.setResizable(false); // 禁止使用者改變視窗大小，避免排版跑掉
         primaryStage.show(); // 正式顯示視窗

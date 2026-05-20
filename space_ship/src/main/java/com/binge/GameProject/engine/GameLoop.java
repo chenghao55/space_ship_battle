@@ -50,9 +50,9 @@ public class GameLoop extends AnimationTimer {
 
         // 3. 更新 UI 介面 (例如：更新目前的速度數值與警告文字)
         if (hudManager != null) {
-            if (gameManager.getCurrentState() == GameState.PLAYING) {
+            if (gameManager.getCurrentState() == GameState.PLAYING || gameManager.getCurrentState() == GameState.BULLET_TIME) {
                 hudManager.setVisible(true);
-                hudManager.update(gameManager.getPlayer(), dt);
+                hudManager.update(gameManager, dt);
             } else {
                 hudManager.setVisible(false);
             }
@@ -62,6 +62,7 @@ public class GameLoop extends AnimationTimer {
         if (gameManager.getCurrentState() == GameState.MISSION_CLEAR && !missionClearTriggered) {
             missionClearTriggered = true;
             if (missionResultUI != null) {
+                missionResultUI.updateResult(gameManager.getScoreResult());
                 missionResultUI.show();
             }
         }

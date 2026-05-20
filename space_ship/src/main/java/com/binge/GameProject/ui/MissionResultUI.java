@@ -12,12 +12,16 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
+import com.binge.GameProject.gameplay.ScoreResult;
 
 // MissionResultUI 提供電影級任務結算畫面 (全息 UI)
 public class MissionResultUI {
     private Group uiRoot;
     private VBox mainPanel;
     private Rectangle darkOverlay;
+    private VBox leftStats;
+    private Text rankLabel;
+    private Text subTitle;
 
     private Runnable onRetry;
     private Runnable onReturnToMenu;
@@ -40,7 +44,7 @@ public class MissionResultUI {
         title.setFont(new Font("Consolas", 72));
         title.setFill(Color.web("#00FFFF"));
         
-        Text subTitle = new Text("ENEMY ORBITAL BASE DESTROYED");
+        subTitle = new Text("GALACTIC HARMONY RESCUE REPORT");
         subTitle.setFont(new Font("Consolas", 24));
         subTitle.setFill(Color.web("#CCCCCC"));
 
@@ -49,25 +53,22 @@ public class MissionResultUI {
         statsBox.setAlignment(Pos.CENTER);
 
         // 左側：數據
-        VBox leftStats = new VBox(15);
+        leftStats = new VBox(15);
         leftStats.setAlignment(Pos.CENTER_LEFT);
-        addStatRow(leftStats, "TIME SURVIVED:", "04:23");
-        addStatRow(leftStats, "MAX VELOCITY:", "1450 m/s");
-        addStatRow(leftStats, "BOOST EFFICIENCY:", "87%");
 
         // 右側：評價與加分
         VBox rightStats = new VBox(15);
         rightStats.setAlignment(Pos.CENTER_RIGHT);
         
-        Text rankLabel = new Text("RANK: S");
+        rankLabel = new Text("RANK: -");
         rankLabel.setFont(new Font("Consolas", 48));
         rankLabel.setFill(Color.web("#FFD700")); // 金色
         
-        Text bonus1 = new Text("+ ORBITAL DRIFT BONUS");
+        Text bonus1 = new Text("+ IDOL RESCUE DATA VERIFIED");
         bonus1.setFont(new Font("Consolas", 18));
         bonus1.setFill(Color.web("#00FFCC"));
         
-        Text bonus2 = new Text("+ CLOSE FLYBY BONUS");
+        Text bonus2 = new Text("+ SNAKE HITBOX ACTIVE");
         bonus2.setFont(new Font("Consolas", 18));
         bonus2.setFill(Color.web("#00FFCC"));
         
@@ -114,13 +115,35 @@ public class MissionResultUI {
         container.getChildren().add(row);
     }
 
+    public void updateResult(ScoreResult result) {
+        leftStats.getChildren().clear();
+        addStatRow(leftStats, "TOTAL IDOLS:", String.valueOf(result.getTotalCount()));
+        addStatRow(leftStats, "RESCUED:", String.valueOf(result.getRescuedCount()));
+        addStatRow(leftStats, "LOST:", String.valueOf(result.getLostCount()));
+        addStatRow(leftStats, "HP LEFT:", String.valueOf(result.getRemainingHp()));
+        addStatRow(leftStats, "RESCUE RATE:", String.format("%.0f%%", result.getRescuedRatio() * 100.0));
+        rankLabel.setText("RANK: " + result.getRating());
+        subTitle.setText(result.getRemainingHp() <= 0 ? "MISSION FAILED // SHIP LOST" : "GALACTIC HARMONY RESCUE REPORT");
+    }
+
     private Button createStyledButton(String text) {
         Button btn = new Button(text);
         btn.setFont(new Font("Consolas", 18));
         btn.setStyle("-fx-background-color: transparent; -fx-text-fill: #00FFFF; -fx-border-color: #00FFFF; -fx-border-width: 2; -fx-padding: 10 30;");
         
-        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #00FFFF; -fx-text-fill: #000000; -fx-border-color: #00FFFF; -fx-border-width: 2; -fx-padding: 10 30;"));
+        btn.setOnMouseEntered(e -> {
+            btn.setStyle("-fx-background-color: #00FFFF; -fx-text-fill: #000000; -fx-border-color: #00FFFF; -fx-border-width: 2; -fx-padding: 10 30;");
+            if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                com.binge.GameProject.audio.AudioSystem.getInstance().playSwitch();
+            }
+        });
         btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: transparent; -fx-text-fill: #00FFFF; -fx-border-color: #00FFFF; -fx-border-width: 2; -fx-padding: 10 30;"));
+        
+        btn.setOnMousePressed(e -> {
+            if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                com.binge.GameProject.audio.AudioSystem.getInstance().playButtonPress();
+            }
+        });
         
         return btn;
     }
