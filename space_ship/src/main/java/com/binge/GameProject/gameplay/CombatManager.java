@@ -47,7 +47,7 @@ public class CombatManager {
                     double distance = bullet.getPosition().distance(planet.getPosition());
                     if (distance <= planet.getRadius() + bullet.getRadius()) {
                         bullet.setDead(true);
-                        warningText = "BULLET SPARKED ON PLANET";
+                        warningText = "BULLET SPARKED ON PLANET / STAR";
                         warningTimer = 0.8;
                         break;
                     }

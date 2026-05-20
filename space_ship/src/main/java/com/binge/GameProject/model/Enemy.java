@@ -7,8 +7,8 @@ import javafx.scene.shape.Box;
 
 public class Enemy extends GameObject {
     private int hp = 3;
-    private final double aggroRadius = 2600.0;
-    private double shootCooldown = 0.2;
+    private final double aggroRadius = 1650.0;
+    private double shootCooldown = 1.2;
     private boolean alive = true;
 
     public Enemy(double x, double y) {
@@ -33,7 +33,7 @@ public class Enemy extends GameObject {
     }
 
     public void resetShootCooldown() {
-        shootCooldown = 0.34;
+        shootCooldown = 1.34;
     }
 
     public void takeDamage(int amount) {
