@@ -21,10 +21,14 @@ public class PhysicsEngine {
         // 針對每一個會動的物體 (例如飛船) 計算物理
         for (GameObject obj : dynamicObjects) {
             if (obj.isDead()) continue;
+
+            if (obj instanceof Bullet bullet) {
+                updateBulletWithoutPlanetForces(bullet, staticObjects, dt);
+                continue;
+            }
             
             // 用來收集「所有星球」加總起來的引力總和
             Vector2D totalGravity = new Vector2D(0, 0);
-            boolean destroyedByPlanet = false;
             
             // 檢查每一個靜止的物體 (例如星球)
             for (GameObject staticObj : staticObjects) {
@@ -38,12 +42,6 @@ public class PhysicsEngine {
                     double distSq = diff.magnitudeSquared();
                     double dist = Math.sqrt(distSq);
 
-                    if (obj instanceof Bullet bullet && dist <= p.getRadius() + bullet.getRadius()) {
-                        obj.setDead(true);
-                        destroyedByPlanet = true;
-                        break;
-                    }
-                    
                     // 設定一個危險邊界距離 (力場半徑縮小為現在的一半，也就是星球半徑 + 50)
                     double dangerRadius = p.getRadius() + 50;
                     
@@ -103,10 +101,6 @@ public class PhysicsEngine {
                 }
             }
 
-            if (destroyedByPlanet) {
-                continue;
-            }
-            
             // 將所有星球的總引力，加到飛船的加速度上 (飛船自己的引擎推力已經先加在 acceleration 裡面了)
             obj.getAcceleration().addMut(totalGravity);
             
@@ -125,5 +119,34 @@ public class PhysicsEngine {
             // 同步將剛算好的物理位置，更新到 JavaFX 3D 畫面的模型上
             obj.updateView();
         }
+    }
+
+    private void updateBulletWithoutPlanetForces(Bullet bullet, List<GameObject> staticObjects, double dt) {
+        Vector2D start = new Vector2D(bullet.getPosition().x, bullet.getPosition().y);
+        Vector2D end = start.add(bullet.getVelocity().multiply(dt));
+
+        for (GameObject staticObj : staticObjects) {
+            if (staticObj instanceof Planet planet && segmentIntersectsCircle(start, end, planet.getPosition(), planet.getRadius() + bullet.getRadius())) {
+                bullet.setDead(true);
+                return;
+            }
+        }
+
+        bullet.getPosition().set(end);
+        bullet.getAcceleration().set(0, 0);
+        bullet.updateView();
+    }
+
+    private boolean segmentIntersectsCircle(Vector2D start, Vector2D end, Vector2D center, double radius) {
+        Vector2D segment = end.subtract(start);
+        double lengthSq = segment.magnitudeSquared();
+        if (lengthSq == 0) {
+            return start.distance(center) <= radius;
+        }
+
+        double t = center.subtract(start).dot(segment) / lengthSq;
+        t = Math.max(0, Math.min(1, t));
+        Vector2D closest = start.add(segment.multiply(t));
+        return closest.distance(center) <= radius;
     }
 }

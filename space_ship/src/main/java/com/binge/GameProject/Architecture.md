@@ -521,6 +521,8 @@ class Planet extends StaticObject {
 2. 玩家飛船接觸行星表面碰撞圈時扣 1 HP。
 3. 玩家扣血後仍由排斥力場推出，避免卡在行星內。
 4. 行星碰撞扣血需要短暫冷卻，避免單次接觸造成多次連續扣血。
+5. `Bullet` 必須跳過行星 / 恆星引力與排斥力計算。
+6. `PhysicsEngine` 必須使用 bullet path segment vs planet/star circle 的掃描碰撞，避免高速子彈穿透或被 `dangerRadius` 彈開。
 
 ---
 
@@ -540,12 +542,13 @@ class Enemy extends StaticObject {
 ### Enemy 規則
 
 1. 靜態射擊型。
-2. 玩家進入大範圍 `aggroRadius` 後射擊。
+2. 玩家進入中距離 `aggroRadius` 後射擊。
 3. 玩家子彈擊中敵人：Enemy HP -1。
 4. Enemy HP <= 0：停止射擊、關閉碰撞、播放爆炸、移除。
 5. 玩家本體或隊伍撞到敵人：Enemy 消滅，但 Player 受傷。
-6. 敵人必須更積極：縮短 `shootCooldown`，提高子彈速度，並用玩家目前速度做預判瞄準。
+6. 敵人使用預判射擊，但攻擊頻率不可過高。
 7. 預判射擊可保留少量誤差，但不可再只朝玩家當前座標慢速發射。
+8. 本版調整：`aggroRadius` 縮小，`shootCooldown` 比上一版增加 1 秒，降低壓迫感。
 
 ---
 
@@ -799,6 +802,15 @@ class IdolGroup {
 目前 `songPath` 全部使用 `/music/song.mp3`。  
 音量來源必須與雷達脈衝強度一致：`volume = pulseAmplitude` 或相同距離公式，確保雷達震動越強，歌曲越大聲。
 
+更新規則：音量與雷達感應必須使用明顯線性關係。  
+雷達未感測到 Idol 時 `volume = 0` 並 pause 該組音樂；進入感測距離後使用：
+
+```text
+volume = 1.0 - distance / radarSenseRange
+```
+
+再 clamp 到 `0..1`。
+
 ---
 
 ## 十四、從原本 Inspiration.mdc 與 Architecture.md 修改的重點
@@ -1040,14 +1052,20 @@ LOST
 #### B-6 CombatManager
 
 - 敵人有 HP，例如 3。
-- 敵人有大範圍 Aggro Zone。
-- 玩家進入範圍後敵人高頻率射擊。
+- 敵人有中距離 Aggro Zone。
+- 玩家進入範圍後敵人預判射擊，但射擊間隔需比上一版延長 1 秒。
 - 敵人射擊需預判玩家位置，並提高子彈速度與命中威脅。
 - 玩家子彈打中敵人：敵人 HP -1，子彈消失。
 - 敵人 HP <= 0：播放爆炸、移除敵人。
 - 玩家本體或隊伍撞敵人：敵人消滅，但玩家受傷。
 - 敵方子彈打中玩家任一 Hitbox：玩家受傷。
-- 任意子彈撞行星：播放火花並消失，不反彈；物理層不得再對已碰撞子彈施加排斥力。
+- 任意子彈撞行星或恆星：播放火花並消失，不反彈；物理層不得再對已碰撞子彈施加排斥力。
+
+#### B-6a Star Visual / Collision
+
+- 中央恆星屬於 `Planet` 類地形。
+- 恆星材質必須是暖橘色、不透明且非常明亮，使用高亮 diffuse / specular / self illumination。
+- 玩家或敵人的子彈碰到恆星半徑時，和碰到行星一樣立即消失。
 
 #### B-7 MissionManager
 

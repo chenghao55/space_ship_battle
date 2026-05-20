@@ -4,7 +4,10 @@ import com.binge.GameProject.model.Enemy;
 import com.binge.GameProject.model.Idol;
 import com.binge.GameProject.model.IdolGroup;
 import com.binge.GameProject.model.Planet;
+import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.PhongMaterial;
+import javafx.scene.shape.Sphere;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +25,7 @@ public class LevelManager {
         enemies.clear();
 
         Planet sun = new Planet(0, 0, 1000, 200000, Color.web("#ffaa00"));
+        makeStarBrightAndOpaque(sun);
         Planet aurora = new Planet(3600, 0, 267, 500000, Color.web("#3ec7ff"));
         Planet neon = new Planet(-3000, 3000, 210, 300000, Color.web("#ff4f9a"));
         Planet lunar = new Planet(0, 5400, 160, 120000, Color.web("#d8d8e8"));
@@ -56,6 +60,26 @@ public class LevelManager {
     private void addEnemy(Enemy enemy, ObjectConsumer consumer) {
         enemies.add(enemy);
         consumer.add(enemy);
+    }
+
+    private void makeStarBrightAndOpaque(Planet star) {
+        if (!(star.getView() instanceof Sphere sphere)) return;
+        Color warmOrange = Color.web("#ff8a00");
+        PhongMaterial material = new PhongMaterial(warmOrange);
+        material.setSpecularColor(Color.web("#fff1b8"));
+        material.setSelfIlluminationMap(createSolidImage(warmOrange));
+        sphere.setMaterial(material);
+        sphere.setOpacity(1.0);
+    }
+
+    private WritableImage createSolidImage(Color color) {
+        WritableImage image = new WritableImage(2, 2);
+        for (int x = 0; x < 2; x++) {
+            for (int y = 0; y < 2; y++) {
+                image.getPixelWriter().setColor(x, y, color);
+            }
+        }
+        return image;
     }
 
     private void createGroup(String groupId, String songId, Planet planet, Color color, String[] names,
