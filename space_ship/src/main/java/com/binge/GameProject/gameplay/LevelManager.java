@@ -26,10 +26,56 @@ public class LevelManager {
 
         Planet sun = new Planet(0, 0, 1000, 200000, Color.web("#ffaa00"));
         makeStarBrightAndOpaque(sun);
-        Planet aurora = new Planet(3600, 0, 267, 500000, Color.web("#3ec7ff"));
-        Planet neon = new Planet(-3000, 3000, 210, 300000, Color.web("#ff4f9a"));
-        Planet lunar = new Planet(0, 5400, 160, 120000, Color.web("#d8d8e8"));
         addPlanet(sun, consumer);
+
+        java.util.Random rand = new java.util.Random();
+        double[][] coords = new double[3][2];
+        boolean configOk = false;
+        int configAttempts = 0;
+
+        while (!configOk && configAttempts < 5000) {
+            configAttempts++;
+            // 隨機產生 3 個點
+            for (int i = 0; i < 3; i++) {
+                coords[i][0] = -8500.0 + rand.nextDouble() * 17000.0;
+                coords[i][1] = -8500.0 + rand.nextDouble() * 17000.0;
+            }
+
+            // 檢查是否皆距離太陽 >= 4000.0
+            boolean sunDistOk = true;
+            for (int i = 0; i < 3; i++) {
+                double d = Math.sqrt(coords[i][0] * coords[i][0] + coords[i][1] * coords[i][1]);
+                if (d < 4000.0) {
+                    sunDistOk = false;
+                    break;
+                }
+            }
+            if (!sunDistOk) continue;
+
+            // 計算兩兩之間的距離
+            double d01 = Math.sqrt(Math.pow(coords[0][0] - coords[1][0], 2) + Math.pow(coords[0][1] - coords[1][1], 2));
+            double d02 = Math.sqrt(Math.pow(coords[0][0] - coords[2][0], 2) + Math.pow(coords[0][1] - coords[2][1], 2));
+            double d12 = Math.sqrt(Math.pow(coords[1][0] - coords[2][0], 2) + Math.pow(coords[1][1] - coords[2][1], 2));
+
+            double minDist = Math.min(d01, Math.min(d02, d12));
+
+            // 距離限制：兩兩之間最少 6750.0 距離，且最近的兩個行星距離在 6750 到 8500 之間
+            if (minDist >= 6750.0 && minDist <= 8500.0) {
+                configOk = true;
+            }
+        }
+
+        // 防呆回退預設值
+        if (!configOk) {
+            coords[0][0] = 5000; coords[0][1] = 0;
+            coords[1][0] = -2000; coords[1][1] = 5000;
+            coords[2][0] = -3000; coords[2][1] = -3000;
+        }
+
+        Planet aurora = new Planet(coords[0][0], coords[0][1], 267, 500000, Color.web("#3ec7ff"));
+        Planet neon = new Planet(coords[1][0], coords[1][1], 210, 300000, Color.web("#ff4f9a"));
+        Planet lunar = new Planet(coords[2][0], coords[2][1], 160, 120000, Color.web("#d8d8e8"));
+
         addPlanet(aurora, consumer);
         addPlanet(neon, consumer);
         addPlanet(lunar, consumer);
@@ -47,9 +93,14 @@ public class LevelManager {
                 new double[][]{{280, 65, 9}, {360, 236, -7}},
                 "/photo/c.jpg", "/music/supernova.mp3", consumer);
 
-        addEnemy(new Enemy(1200, 1100), consumer);
-        addEnemy(new Enemy(-1600, 2100), consumer);
-        addEnemy(new Enemy(2500, 4300), consumer);
+        // 為每顆行星產生一個守衛敵人
+        for (int i = 0; i < 3; i++) {
+            double angle = rand.nextDouble() * 2 * Math.PI;
+            double enemyDist = 1500.0 + rand.nextDouble() * 300.0;
+            double ex = coords[i][0] + Math.cos(angle) * enemyDist;
+            double ey = coords[i][1] + Math.sin(angle) * enemyDist;
+            addEnemy(new Enemy(ex, ey), consumer);
+        }
     }
 
     private void addPlanet(Planet planet, ObjectConsumer consumer) {
