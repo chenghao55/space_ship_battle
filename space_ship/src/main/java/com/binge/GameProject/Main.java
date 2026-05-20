@@ -106,7 +106,7 @@ public class Main extends Application {
         gameLoop.start(); // 開始運作
 
         // 8. 顯示視窗設定
-        primaryStage.setTitle("Orbital Hunter / Gravity Drift"); // 設定視窗標題
+        primaryStage.setTitle("Galactic Harmony"); // 設定視窗標題
         primaryStage.setScene(scene); // 將場景放入視窗
         primaryStage.setResizable(false); // 禁止使用者改變視窗大小，避免排版跑掉
         primaryStage.show(); // 正式顯示視窗

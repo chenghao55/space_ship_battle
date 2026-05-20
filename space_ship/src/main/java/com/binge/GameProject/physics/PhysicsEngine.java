@@ -1,7 +1,9 @@
 package com.binge.GameProject.physics;
 
 import com.binge.GameProject.model.GameObject;
+import com.binge.GameProject.model.Bullet;
 import com.binge.GameProject.model.Planet;
+import com.binge.GameProject.model.Player;
 
 import java.util.List;
 
@@ -18,9 +20,11 @@ public class PhysicsEngine {
     public void updatePhysics(List<GameObject> dynamicObjects, List<GameObject> staticObjects, double dt) {
         // 針對每一個會動的物體 (例如飛船) 計算物理
         for (GameObject obj : dynamicObjects) {
+            if (obj.isDead()) continue;
             
             // 用來收集「所有星球」加總起來的引力總和
             Vector2D totalGravity = new Vector2D(0, 0);
+            boolean destroyedByPlanet = false;
             
             // 檢查每一個靜止的物體 (例如星球)
             for (GameObject staticObj : staticObjects) {
@@ -33,6 +37,12 @@ public class PhysicsEngine {
                     Vector2D diff = obj.getPosition().subtract(p.getPosition());
                     double distSq = diff.magnitudeSquared();
                     double dist = Math.sqrt(distSq);
+
+                    if (obj instanceof Bullet bullet && dist <= p.getRadius() + bullet.getRadius()) {
+                        obj.setDead(true);
+                        destroyedByPlanet = true;
+                        break;
+                    }
                     
                     // 設定一個危險邊界距離 (力場半徑縮小為現在的一半，也就是星球半徑 + 50)
                     double dangerRadius = p.getRadius() + 50;
@@ -83,11 +93,18 @@ public class PhysicsEngine {
                         }
                         
                         // (c) 觸發過熱或受損狀態
-                        if (obj instanceof com.binge.GameProject.model.Player) {
-                            ((com.binge.GameProject.model.Player) obj).takeDangerDamage(dt);
+                        if (obj instanceof Player player) {
+                            player.takeDangerDamage(dt);
+                            if (dist < p.getRadius() + 40) {
+                                player.takePlanetCollisionDamage();
+                            }
                         }
                     }
                 }
+            }
+
+            if (destroyedByPlanet) {
+                continue;
             }
             
             // 將所有星球的總引力，加到飛船的加速度上 (飛船自己的引擎推力已經先加在 acceleration 裡面了)

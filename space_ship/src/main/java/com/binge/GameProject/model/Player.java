@@ -2,6 +2,7 @@ package com.binge.GameProject.model;
 
 import com.binge.GameProject.engine.GameManager;
 import com.binge.GameProject.engine.InputManager;
+import com.binge.GameProject.physics.Hitbox;
 import com.binge.GameProject.physics.Vector2D;
 import javafx.scene.Group;
 import javafx.scene.input.MouseButton;
@@ -9,6 +10,9 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
 import javafx.scene.transform.Rotate;
+
+import java.util.ArrayList;
+import java.util.List;
 
 // Player 是玩家操控的太空飛船，繼承自 GameObject
 public class Player extends GameObject {
@@ -24,6 +28,11 @@ public class Player extends GameObject {
     private double boostEnergy = 100.0; // Boost 能量 (滿分 100)
     private boolean isOverheating = false; // 是否在危險區過熱
     private double overheatTimer = 0.0;
+    private double planetCollisionCooldown = 0.0;
+    private int hp = 5;
+    private final int maxHp = 5;
+    private double driftIntensity = 0.0;
+    private final RescueGroup rescueGroup = new RescueGroup();
 
     private GameManager gameManager; // 讓飛船可以呼叫 GameManager 來產生子彈
 
@@ -89,10 +98,13 @@ public class Player extends GameObject {
             if (overheatTimer <= 0)
                 isOverheating = false;
         }
+        if (planetCollisionCooldown > 0) {
+            planetCollisionCooldown -= dt;
+        }
 
         // --- 1. 處理轉向 (A / D) ---
         if (canControl) {
-            if (input.isPressed("A")) {
+            if (input.isPressed("A") || input.isPressed("LEFT")) {
                 rotationAngle -= rotationSpeed * dt; // 往左轉
                 // 如果有速度，也同步將速度向量轉向，確保操控符合機頭方向
                 if (velocity.magnitudeSquared() > 1.0) {
@@ -101,7 +113,7 @@ public class Player extends GameObject {
                     velocity.set(mag * Math.sin(rad), mag * Math.cos(rad));
                 }
             }
-            if (input.isPressed("D")) {
+            if (input.isPressed("D") || input.isPressed("RIGHT")) {
                 rotationAngle += rotationSpeed * dt; // 往右轉
                 if (velocity.magnitudeSquared() > 1.0) {
                     double mag = Math.sqrt(velocity.magnitudeSquared());
@@ -124,11 +136,11 @@ public class Player extends GameObject {
         }
 
         if (canControl) {
-            if (input.isPressed("W")) {
+            if (input.isPressed("W") || input.isPressed("UP")) {
                 double rad = Math.toRadians(rotationAngle);
                 acceleration.addMut(new Vector2D(Math.sin(rad), Math.cos(rad)).multiply(currentThrust));
             }
-            if (input.isPressed("S")) {
+            if (input.isPressed("S") || input.isPressed("DOWN")) {
                 velocity.multiplyMut(brakeFactor);
             }
         }
@@ -136,7 +148,13 @@ public class Player extends GameObject {
         // --- 3. 機頭永遠朝向速度方向 ---
         // 當重力彈弓等外力改變了速度方向時，機頭（與攝影機）必須瞬間跟隨切換！
         if (velocity.magnitudeSquared() > 1.0) {
+            double oldAngle = rotationAngle;
             rotationAngle = Math.toDegrees(Math.atan2(velocity.x, velocity.y));
+            double diff = Math.abs(rotationAngle - oldAngle);
+            while (diff > 180) diff -= 360;
+            driftIntensity = Math.min(1.0, Math.abs(diff) / 90.0);
+        } else {
+            driftIntensity = Math.max(0, driftIntensity - dt * 2.0);
         }
 
         // 更新畫面旋轉
@@ -171,8 +189,8 @@ public class Player extends GameObject {
             Vector2D bulletVelLeft = velocity.add(forward.multiply(3000));
             Vector2D bulletVelRight = velocity.add(forward.multiply(3000));
 
-            Projectile b1 = new Projectile(spawnLeft.x, spawnLeft.y, bulletVelLeft);
-            Projectile b2 = new Projectile(spawnRight.x, spawnRight.y, bulletVelRight);
+            PlayerBullet b1 = new PlayerBullet(spawnLeft.x, spawnLeft.y, bulletVelLeft);
+            PlayerBullet b2 = new PlayerBullet(spawnRight.x, spawnRight.y, bulletVelRight);
 
             gameManager.addGameObject(b1);
             gameManager.addGameObject(b2);
@@ -183,7 +201,15 @@ public class Player extends GameObject {
     public void takeDangerDamage(double dt) {
         this.isOverheating = true;
         this.overheatTimer = 0.2; // 維持 0.2 秒過熱狀態
-        // 可以在這裡實作扣血機制或觸發 UI 警告
+    }
+
+    public boolean takePlanetCollisionDamage() {
+        if (planetCollisionCooldown > 0) return false;
+        takeDamage(1);
+        planetCollisionCooldown = 1.2;
+        this.isOverheating = true;
+        this.overheatTimer = 0.45;
+        return true;
     }
 
     public boolean isBoosting() {
@@ -200,5 +226,40 @@ public class Player extends GameObject {
 
     public double getRotationAngle() {
         return rotationAngle;
+    }
+
+    public void takeDamage(int amount) {
+        hp = Math.max(0, hp - amount);
+    }
+
+    public boolean isAlive() {
+        return hp > 0;
+    }
+
+    public int getHp() {
+        return hp;
+    }
+
+    public int getMaxHp() {
+        return maxHp;
+    }
+
+    public double getDriftIntensity() {
+        return driftIntensity;
+    }
+
+    public RescueGroup getRescueGroup() {
+        return rescueGroup;
+    }
+
+    public List<Hitbox> getFullBodyHitboxes() {
+        List<Hitbox> hitboxes = new ArrayList<>();
+        hitboxes.add(new Hitbox(new Vector2D(position.x, position.y), 34));
+        hitboxes.addAll(rescueGroup.getHitboxes());
+        return hitboxes;
+    }
+
+    public List<Hitbox> getRescueHitboxes() {
+        return getFullBodyHitboxes();
     }
 }
