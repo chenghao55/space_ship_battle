@@ -12,7 +12,7 @@ public class IdolGroup {
     private final List<Idol> idols = new ArrayList<>();
 
     public IdolGroup(String groupId, String songId) {
-        this(groupId, songId, null, "/music/song.mp3");
+        this(groupId, songId, null, "/music/supernova.mp3");
     }
 
     public IdolGroup(String groupId, String songId, String texturePath, String songPath) {

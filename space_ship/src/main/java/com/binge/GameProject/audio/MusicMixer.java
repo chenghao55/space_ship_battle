@@ -32,7 +32,7 @@ public class MusicMixer {
     }
 
     public void setGroupSongVolume(String groupId, double volume) {
-        setGroupSongVolume(groupId, "/music/song.mp3", volume);
+        setGroupSongVolume(groupId, "/music/supernova.mp3", volume);
     }
 
     private MediaPlayer createLoopingPlayer(String songPath) {
