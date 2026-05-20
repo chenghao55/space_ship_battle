@@ -168,6 +168,7 @@ public class GameManager {
     private void finishMission() {
         scoreResult = scoreManager.calculate(getRescuedCount(), getOriginalTotalIdolCount(), getLostCount(), player.getHp());
         currentState = GameState.MISSION_CLEAR;
+        audioSystem.stopAll();
     }
 
     public void addGameObject(GameObject obj) {

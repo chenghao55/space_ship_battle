@@ -55,4 +55,8 @@ public class AudioSystem {
 
     public MusicMixer getMixer() { return mixer; }
     public String getLastSfx() { return lastSfx; }
+
+    public void stopAll() {
+        mixer.stopAll();
+    }
 }
