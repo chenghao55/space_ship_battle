@@ -53,6 +53,14 @@ public class MusicMixer {
     public double getAmbientVolume() { return ambientVolume; }
     public double getGroupSongVolume(String groupId) { return groupVolumes.getOrDefault(groupId, 0.0); }
 
+    public void pauseAll() {
+        for (MediaPlayer player : groupPlayers.values()) {
+            if (player != null && player.getStatus() == MediaPlayer.Status.PLAYING) {
+                player.pause();
+            }
+        }
+    }
+
     public void stopAll() {
         for (MediaPlayer player : groupPlayers.values()) {
             if (player != null) {

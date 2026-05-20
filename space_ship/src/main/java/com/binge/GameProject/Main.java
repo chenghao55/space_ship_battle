@@ -9,6 +9,7 @@ import com.binge.GameProject.rendering.ParticleRenderer;
 import com.binge.GameProject.ui.HUDManager;
 import com.binge.GameProject.ui.MainMenuUI;
 import com.binge.GameProject.ui.MissionResultUI;
+import com.binge.GameProject.ui.PauseUI;
 import com.binge.GameProject.audio.AudioSystem;
 import javafx.application.Application;
 import javafx.scene.Group;
@@ -73,6 +74,7 @@ public class Main extends Application {
         HUDManager hudManager = new HUDManager(uiRoot);
         MissionResultUI missionResultUI = new MissionResultUI(uiRoot, WIDTH, HEIGHT);
         MainMenuUI mainMenuUI = new MainMenuUI(uiRoot, WIDTH, HEIGHT);
+        PauseUI pauseUI = new PauseUI(uiRoot, WIDTH, HEIGHT);
         
         // 7. 啟動遊戲主迴圈
         // GameLoop 是一個計時器，每秒會執行約 60 次來更新遊戲畫面與邏輯
@@ -107,6 +109,45 @@ public class Main extends Application {
             gameLoop.resetMissionClearTrigger();
             if (AudioSystem.getInstance() != null) {
                 AudioSystem.getInstance().playMenuMusic();
+            }
+        });
+
+        // 設定暫停畫面的按鈕邏輯
+        pauseUI.setOnResume(() -> {
+            pauseUI.hide();
+            gameManager.resumeGame();
+        });
+
+        pauseUI.setOnRestart(() -> {
+            pauseUI.hide();
+            gameManager.resetGame();
+            gameLoop.resetMissionClearTrigger();
+        });
+
+        pauseUI.setOnReturnToMenu(() -> {
+            pauseUI.hide();
+            gameManager.resetGame();
+            gameManager.setCurrentState(com.binge.GameProject.engine.GameState.MAIN_MENU);
+            cameraManager.setMenuMode(true);
+            mainMenuUI.fadeInAndShow();
+            gameLoop.resetMissionClearTrigger();
+            if (AudioSystem.getInstance() != null) {
+                AudioSystem.getInstance().playMenuMusic();
+            }
+        });
+
+        // 監聽鍵盤事件以開啟或關閉暫停選單 (按下 ESC 或 P 鍵)
+        scene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE || event.getCode() == javafx.scene.input.KeyCode.P) {
+                var state = gameManager.getCurrentState();
+                if (state == com.binge.GameProject.engine.GameState.PLAYING 
+                        || state == com.binge.GameProject.engine.GameState.BULLET_TIME) {
+                    gameManager.pauseGame();
+                    pauseUI.show();
+                } else if (state == com.binge.GameProject.engine.GameState.PAUSED) {
+                    pauseUI.hide();
+                    gameManager.resumeGame();
+                }
             }
         });
 

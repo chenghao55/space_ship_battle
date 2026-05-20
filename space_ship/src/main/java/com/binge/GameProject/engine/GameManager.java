@@ -185,6 +185,8 @@ public class GameManager {
     }
 
     public void resetGame() {
+        audioSystem.stopMenuMusic();
+        audioSystem.stopAll();
         for (GameObject obj : dynamicObjects) {
             if (obj.getView() != null) worldRoot.getChildren().remove(obj.getView());
         }
@@ -236,6 +238,24 @@ public class GameManager {
             scoreResult = scoreManager.calculate(getRescuedCount(), getOriginalTotalIdolCount(), getLostCount(), player.getHp());
         }
         return scoreResult;
+    }
+
+    private GameState stateBeforePause;
+
+    public void pauseGame() {
+        if (currentState == GameState.PLAYING || currentState == GameState.BULLET_TIME) {
+            stateBeforePause = currentState;
+            currentState = GameState.PAUSED;
+            audioSystem.stopInGameLoopingSounds();
+            audioSystem.playMenuMusic();
+        }
+    }
+
+    public void resumeGame() {
+        if (currentState == GameState.PAUSED) {
+            currentState = stateBeforePause != null ? stateBeforePause : GameState.PLAYING;
+            audioSystem.stopMenuMusic();
+        }
     }
 
     public void setCurrentState(GameState state) {

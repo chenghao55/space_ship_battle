@@ -264,6 +264,21 @@ public class AudioSystem {
         lastSfx = "hint";
     }
 
+    public void stopInGameLoopingSounds() {
+        mixer.pauseAll();
+        if (enemyAmbientPlayer != null) {
+            enemyAmbientPlayer.stop();
+            enemyAmbientPlayer.setVolume(0);
+        }
+        if (enginePlayer != null) {
+            enginePlayer.stop();
+            enginePlayer.setVolume(0);
+        }
+        if (scifiHumPlayer != null) {
+            scifiHumPlayer.stop();
+        }
+    }
+
     public void stopAll() {
         mixer.stopAll();
         if (enemyAmbientPlayer != null) {
