@@ -16,8 +16,8 @@ import java.util.List;
 
 // Player 是玩家操控的太空飛船，繼承自 GameObject
 public class Player extends GameObject {
-    private double thrust = 450.0; // 向前推進力 (大幅增加速度)
-    private double lateralThrust = 100.0; // 左右平移 (側滑) 的推力
+    private double thrust = 600.0; // 向前推進力 (大幅增加速度)
+    private double lateralThrust = 130.0; // 左右平移 (側滑) 的推力
     private double brakeFactor = 0.95; // 煞車力道 (每幀保留的速度比例)
 
     private double rotationAngle = 0; // 飛船目前的面向角度 (0度代表朝向 +Z 軸)

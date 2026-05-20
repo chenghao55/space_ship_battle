@@ -41,7 +41,7 @@ public class GameManager {
     private Player player;
     private final Group worldRoot;
     private final CameraManager cameraManager;
-    private double remainingTime = 60.0;
+    private double remainingTime = 90.0;
     private ScoreResult scoreResult;
 
     public GameManager(Group worldRoot, CameraManager cameraManager) {
@@ -51,10 +51,10 @@ public class GameManager {
     }
 
     private void initWorld() {
-        player = new Player(0, -6000, this);
+        player = new Player(0, -9000, this);
         addGameObject(player);
         levelManager.buildDemoLevel(this::addGameObject);
-        remainingTime = 60.0;
+        remainingTime = 90.0;
         missionManager.reset();
         timeScaleController.reset();
         scoreResult = null;
@@ -156,7 +156,7 @@ public class GameManager {
     }
 
     private void applyBoundarySystem(double dt) {
-        double limit = 6800.0;
+        double limit = 10200.0;
         Vector2D pos = player.getPosition();
         if (Math.abs(pos.x) > limit || Math.abs(pos.y) > limit) {
             Vector2D pull = new Vector2D(-pos.x, -pos.y).normalize().multiply(600 * dt);
@@ -218,7 +218,7 @@ public class GameManager {
     public String getCombatWarningText() { return combatManager.getWarningText(); }
 
     public boolean isPlayerOutOfBounds() {
-        return Math.abs(player.getPosition().x) > 6800 || Math.abs(player.getPosition().y) > 6800;
+        return Math.abs(player.getPosition().x) > 10200 || Math.abs(player.getPosition().y) > 10200;
     }
 
     public ScoreResult getScoreResult() {

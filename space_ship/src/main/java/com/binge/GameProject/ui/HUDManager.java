@@ -100,7 +100,7 @@ public class HUDManager {
         Idol nearest = gameManager.getNearestAvailableIdol();
         if (nearest != null) {
             double distance = nearest.getPosition().distance(player.getPosition());
-            double closeness = Math.max(0.15, 1.0 - Math.min(1.0, distance / 3000.0));
+            double closeness = Math.max(0.15, 1.0 - Math.min(1.0, distance / 4500.0));
             pulsePhase += dt * (1.5 + closeness * 5.5);
             double pulseRadius = outer * (0.55 + (pulsePhase % 1.0) * 0.45);
             gc.setStroke(Color.web("#c8ff4d", 0.18 + closeness * 0.42));
@@ -111,6 +111,11 @@ public class HUDManager {
 
         gc.setFill(Color.WHITE);
         gc.fillOval(-3, -3, 6, 6);
+
+        // 繪製雷達正上方 (North) 藍色三角形，表示面朝方向
+        gc.setFill(Color.web("#00bfff")); // 美觀的亮藍色
+        gc.fillPolygon(new double[]{0, -6, 6}, new double[]{-outer - 8, -outer, -outer}, 3);
+
         gc.restore();
 
         gc.setFill(Color.web("#9efcff"));
@@ -131,7 +136,7 @@ public class HUDManager {
         Idol nearest = gameManager.getNearestAvailableIdol();
         if (nearest == null) return;
         double distance = nearest.getPosition().distance(player.getPosition());
-        double strength = Math.max(0, 1.0 - Math.min(1.0, distance / 1600.0));
+        double strength = Math.max(0, 1.0 - Math.min(1.0, distance / 2400.0));
         if (strength <= 0.03) return;
 
         double baseX = 640;
