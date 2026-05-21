@@ -856,7 +856,7 @@ for each IdolGroup:
 
 ```text
 resources/photo/*.jpg → Idol 球形貼圖
-resources/music/supernova.mp3 → 展示版所有 IdolGroup 的共用歌曲
+resources/pop_musics/supernova.mp3 → 展示版所有 IdolGroup 的共用歌曲
 ```
 
 每個 `IdolGroup` 需要保存固定 `texturePath` 與 `songPath`：
@@ -868,7 +868,7 @@ class IdolGroup {
 }
 ```
 
-目前 `songPath` 全部使用 `/music/supernova.mp3`。  
+目前 `songPath` 全部使用 `/pop_musics/supernova.mp3`。  
 音量來源必須與雷達脈衝強度一致：`volume = pulseAmplitude` 或相同距離公式，確保雷達震動越強，歌曲越大聲。
 
 更新規則：音量與雷達感應必須使用明顯線性關係。  
@@ -1081,7 +1081,7 @@ model/PlayerBullet.java
 - 每顆行星建立一個 `IdolGroup`。
 - 每個 `IdolGroup` 生成多名環繞行星的 `Idol`，不得把 Idol 放在行星內部。
 - 同一個 `IdolGroup` 生成的所有 Idol 使用同一張 `photo` 貼圖。
-- 展示版所有 `IdolGroup` 的音樂先固定為 `/music/supernova.mp3`，音量依雷達脈衝強度等比調整。
+- 展示版所有 `IdolGroup` 的音樂先固定為 `/pop_musics/supernova.mp3`，音量依雷達脈衝強度等比調整。
 - 生成靜態射擊型敵人。
 - 敵方單位數量必須大幅增加，展示版以每顆行星至少 4 座靜態衛星砲塔作為基準，形成可讀但有壓力的防線。
 - 記錄全地圖原始 Idol 總數。

@@ -392,7 +392,7 @@ HUD 必須清楚顯示：
 2. **K-Pop 歌聲提示**  
    玩家接近 Idol 時，對應女團歌曲漸漸變大。
 
-   展示版先使用 `src/main/resources/music` 中唯一的 mp3 檔案作為所有女團的共用歌曲。  
+   展示版先使用 `src/main/resources/pop_musics` 中唯一的 mp3 檔案作為所有女團的共用歌曲。  
    每個 IdolGroup 仍保留固定歌曲對應關係，之後可替換成不同 mp3；目前全部指向同一首 `supernova.mp3`。
 
    對應成員的音樂音量必須與當下外圈雷達脈衝 / 震動強度等比改變。  
@@ -433,7 +433,7 @@ Result Screen 讀取 ScoreResult，依序跳動顯示 rescue、lost、HP、ratio
 
 音效規則：
 
-- 結束停格播放 resources/music 內的 impact sfx。
+- 結束停格播放 resources/pop_musics 內的 impact sfx。
 - Result 數字跳動播放 tick sfx，但限制每 0.04~0.08 秒一次，不能每幀播放。
 - Rating 根據 F / C / B / A / S 播放不同強度 reveal 音效。
 - 不使用任何受版權保護作品的素材或名稱，只做高能量戰鬥結束節奏。
