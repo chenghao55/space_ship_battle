@@ -18,7 +18,7 @@ public class AudioSystem {
     private final IdolVoiceController voiceController = new IdolVoiceController();
     private String lastSfx = "";
 
-    // AudioClip 實例 (適用一次性短音效)
+    // AudioClip 實例 (適用一次性短sound_effects)
     private AudioClip laserSfx;
     private AudioClip buttonPressSfx;
     private AudioClip explosionSfx;
@@ -47,19 +47,19 @@ public class AudioSystem {
     private void loadAudioResources() {
         try {
             // 載入 AudioClip
-            laserSfx = new AudioClip(getClass().getResource("/音效/BlasterSound.wav").toExternalForm());
-            buttonPressSfx = new AudioClip(getClass().getResource("/音效/buttonPress.mp3").toExternalForm());
-            explosionSfx = new AudioClip(getClass().getResource("/音效/explosion.mp3").toExternalForm());
-            hitSfx = new AudioClip(getClass().getResource("/音效/hit.mp3").toExternalForm());
-            switchSfx = new AudioClip(getClass().getResource("/音效/switchSound.mp3").toExternalForm());
-            endingImpactSfx = safeLoadClip("/music/sfx_end_impact.mp3");
-            freezeGlitchSfx = safeLoadClip("/music/sfx_freeze_glitch.mp3");
+            laserSfx = new AudioClip(getClass().getResource("/sound_effects/BlasterSound.wav").toExternalForm());
+            buttonPressSfx = new AudioClip(getClass().getResource("/sound_effects/buttonPress.mp3").toExternalForm());
+            explosionSfx = new AudioClip(getClass().getResource("/sound_effects/explosion.mp3").toExternalForm());
+            hitSfx = new AudioClip(getClass().getResource("/sound_effects/hit.mp3").toExternalForm());
+            switchSfx = new AudioClip(getClass().getResource("/sound_effects/switchSound.mp3").toExternalForm());
+            endingImpactSfx = safeLoadClip("/sound_effects/sfx_end_impact.mp3");
+            freezeGlitchSfx = safeLoadClip("/sound_effects/sfx_freeze_glitch.mp3");
 
             // 載入 MediaPlayer
-            menuMusicPlayer = createLoopingPlayer("/音效/background_scifi.mp3", 0.7);
-            enemyAmbientPlayer = createLoopingPlayer("/音效/enermySound.mp3", 0.0);
-            enginePlayer = createLoopingPlayer("/音效/engineSound.mp3", 0.0);
-            scifiHumPlayer = createLoopingPlayer("/音效/scifi_hum.mp3", 0.5);
+            menuMusicPlayer = createLoopingPlayer("/sound_effects/background_scifi.mp3", 0.7);
+            enemyAmbientPlayer = createLoopingPlayer("/sound_effects/enermySound.mp3", 0.0);
+            enginePlayer = createLoopingPlayer("/sound_effects/engineSound.mp3", 0.0);
+            scifiHumPlayer = createLoopingPlayer("/sound_effects/scifi_hum.mp3", 0.5);
         } catch (Exception e) {
             System.err.println("Error loading audio resources: " + e.getMessage());
             e.printStackTrace();
@@ -110,14 +110,14 @@ public class AudioSystem {
         updateSilenceTimer(loudest, dt);
     }
 
-    // 播放具備距離音量衰減與方向 Balance 的 3D 立體音效
+    // 播放具備距離音量衰減與方向 Balance 的 3D 立體sound_effects
     public void playSpatialClip(AudioClip clip, Vector2D emitterPos, Player player, double maxVolume) {
         if (clip == null || player == null || emitterPos == null) return;
         
         Vector2D diff = emitterPos.subtract(player.getPosition());
         double dist = diff.magnitude();
         
-        // 3D 音效距離衰減 (超過 9000.0 就聽不見)
+        // 3D sound_effects距離衰減 (超過 9000.0 就聽不見)
         double senseRange = 9000.0;
         double volume = Math.max(0, 1.0 - dist / senseRange) * maxVolume;
         
@@ -129,12 +129,12 @@ public class AudioSystem {
                 Vector2D right = new Vector2D(Math.cos(rad), -Math.sin(rad));
                 balance = dir.dot(right);
             }
-            // 播放 3D 立體環繞音效 (JavaFX AudioClip: play(volume, balance, rate, pan, priority))
+            // 播放 3D 立體環繞sound_effects (JavaFX AudioClip: play(volume, balance, rate, pan, priority))
             clip.play(volume, balance, 1.0, balance, 0);
         }
     }
 
-    // 處理敵人接近感應音效 (3D 立體環繞，小聲)
+    // 處理敵人接近感應sound_effects (3D 立體環繞，小聲)
     public void updateEnemyAmbient(List<Enemy> enemies, Player player) {
         if (enemyAmbientPlayer == null || player == null) return;
 
@@ -244,7 +244,7 @@ public class AudioSystem {
         }
     }
 
-    // 按鈕與一般音效播放方法
+    // 按鈕與一般sound_effects播放方法
     public void playButtonPress() {
         if (buttonPressSfx != null) buttonPressSfx.play();
     }

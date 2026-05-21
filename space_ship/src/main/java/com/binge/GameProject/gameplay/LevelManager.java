@@ -93,15 +93,15 @@ public class LevelManager {
         createGroup("AURORA", "aurora-hook", aurora, Color.web("#54f4ff"),
                 new String[]{"Mina", "Sora", "Lumi"},
                 new double[][]{{380, 42, 11}, {470, 156, -8}, {560, 285, 6}},
-                "/photo/a.jpg", "/music/supernova.mp3", consumer);
+                "/photo/a.jpg", "/pop_musics/supernova.mp3", consumer);
         createGroup("NEON", "neon-chorus", neon, Color.web("#ff72bb"),
                 new String[]{"Rin", "Nana", "Yuki"},
                 new double[][]{{330, 22, -10}, {420, 135, 7}, {510, 264, -5}},
-                "/photo/b.jpg", "/music/supernova.mp3", consumer);
+                "/photo/b.jpg", "/pop_musics/supernova.mp3", consumer);
         createGroup("LUNAR", "lunar-bridge", lunar, Color.web("#d7ff7a"),
                 new String[]{"Hana", "Mei"},
                 new double[][]{{280, 65, 9}, {360, 236, -7}},
-                "/photo/c.jpg", "/music/supernova.mp3", consumer);
+                "/photo/c.jpg", "/pop_musics/supernova.mp3", consumer);
 
         // 為每顆行星建立多座外側衛星砲塔，讓救援路線穿過更密集的防線。
         for (int i = 0; i < 3; i++) {
