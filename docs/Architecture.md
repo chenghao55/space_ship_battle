@@ -120,6 +120,7 @@ src/
     │   ├── IdolGroup.java
     │   ├── RescueGroup.java
     │   ├── Enemy.java
+    │   ├── EnemyView.java
     │   ├── Bullet.java
     │   ├── EnemyBullet.java
     │   └── PlayerBullet.java
@@ -190,6 +191,7 @@ enum GameState {
     MAIN_MENU,
     STARTING_TRANSITION,
     PLAYING,
+    ENDING_FREEZE,
     BULLET_TIME,
     MISSION_CLEAR,
     GAME_OVER,
@@ -253,8 +255,8 @@ render()
 ```text
 HP <= 0 → GAME_OVER / F
 解救人數 = 0 且時間結束 → F
-救到最後一名可救援 Idol → BULLET_TIME
-Bullet Time 2.5 秒結束 → MISSION_CLEAR
+救到最後一名可救援 Idol → ENDING_FREEZE
+ENDING_FREEZE 0.15 秒結束 → MISSION_CLEAR
 時間歸零 → MISSION_CLEAR
 ```
 
@@ -502,6 +504,11 @@ class Planet extends StaticObject {
     double driftRadius;
     double repulsiveRadius;
     double gravityStrength;
+
+    Planet orbitCenter;
+    double orbitRadius;
+    double orbitAngle;
+    double orbitSpeed;
 }
 ```
 
@@ -514,6 +521,31 @@ class Planet extends StaticObject {
 5. 玩家貼近時施加排斥力場。
 6. 玩家靠近危險區時通知 UI 顯示警告。
 7. Bullet 撞到 Planet 時通知 CombatManager 銷毀 Bullet。
+
+### 行星公轉規則
+
+1. 中央恆星不公轉。
+2. 其他所有行星以中央恆星為 `orbitCenter` 慢速公轉。
+3. 初始化時，行星相對恆星的公轉半徑必須是原本生成距離的 `0.6` 倍。
+4. 每幀更新：
+
+```text
+orbitAngle += orbitSpeed * dt
+planet.x = star.x + cos(orbitAngle) * orbitRadius
+planet.y = star.y + sin(orbitAngle) * orbitRadius
+```
+
+5. Idol 的軌道位置以母行星最新位置為中心，因此會跟著公轉中的行星移動。
+
+### 行星公轉避讓
+
+`LevelManager` 每幀檢查非恆星行星之間的距離：
+
+1. 若兩顆行星距離低於 `planetOrbitPauseDistance`，判斷軌道位置較後方的一顆。
+2. 後方行星呼叫 `setOrbitPaused(true)` 暫停公轉。
+3. 暫停行星仍可自轉、提供引力與碰撞。
+4. 當距離大於 `planetOrbitResumeDistance`，呼叫 `setOrbitPaused(false)` 恢復公轉。
+5. `planetOrbitResumeDistance` 必須大於暫停距離，避免反覆抖動。
 
 ### 行星碰撞規則
 
@@ -550,6 +582,21 @@ class Enemy extends StaticObject {
 7. 預判射擊可保留少量誤差，但不可再只朝玩家當前座標慢速發射。
 8. 本版調整：`aggroRadius` 縮小，`shootCooldown` 比上一版增加 1 秒，降低壓迫感。
 
+### EnemyView
+
+Enemy 不使用外部 OBJ。  
+模型封裝為 `EnemyView` 或 `Enemy.createView()`，回傳 JavaFX `Group`。
+
+必要組件：
+
+1. 中央核心：`Sphere`，作為發光核心。
+2. 外圈旋轉環：`Cylinder` / `Box` / 多個小 `Sphere` 排成圓形，圍繞核心旋轉。
+3. 砲管：4 根 `Cylinder`，朝前、後、左、右伸出，表示 360 度射擊。
+4. 不顯示警戒範圍或 Aggro Zone 視覺提示。
+5. 射擊前核心短暫變亮，射擊瞬間砲口 flash。
+6. 被玩家子彈擊中時模型短暫閃紅或閃白。
+7. HP 歸零時播放簡單爆炸效果，包含核心放大淡出、砲塔碎片外散、短暫 flash，再標記移除。
+
 ---
 
 ### Class: Bullet
@@ -576,6 +623,7 @@ enum BulletOwner {
 3. 任意子彈撞到行星：播放火花，子彈消失。
 4. 子彈不可反彈。
 5. 子彈生命時間結束後消失。
+6. 玩家子彈有效距離只比敵方 `aggroRadius` 長一些；以目前敵方射程 1650 為基準，玩家子彈基礎射程約 1800 左右，避免超遠距離安全掃射。
 
 ---
 
@@ -728,6 +776,7 @@ IdolPortraitUI
 WarningUI
 ProgressUI
 MissionResultUI
+ResultSequenceManager
 MainMenuUI
 ```
 
@@ -743,6 +792,26 @@ MainMenuUI
 8. 警告提示。
 9. Bullet Time 與淡出。
 10. 結算真實資料：救援人數、流失人數、剩餘 HP、評級。
+
+### ResultSequenceManager
+
+建立 `ResultSequenceManager` 或 `ResultAnimationController`，由 UI / MissionResultUI 呼叫：
+
+```java
+void start(ScoreResult scoreResult);
+```
+
+流程：
+
+1. Result Screen 不使用假資料，只讀取 `ScoreResult`。
+2. 數字依序跳動顯示：
+   - `rescuedCount / totalCount`
+   - `lostCount`
+   - `remainingHp`
+   - `rescuedRatio`
+3. 數字跳動時播放 tick 音效，但限制每 0.04~0.08 秒一次。
+4. 所有數字跳完後延遲 0.3 秒顯示 Rating。
+5. Rating 依 F / C / B / A / S 播放不同強度 reveal 音效。
 
 ---
 
@@ -927,10 +996,18 @@ utils/GameConfig.java
   - RescueGroup 的所有 Hitbox
 - 提供給 B 的 `CombatManager` 與 `RescueManager` 使用。
 
+#### A-4a Rescue Attraction
+
+- 救援目標不必完全碰到飛船或隊伍才救援。
+- 當 Idol 進入救援吸引範圍時，自動吸附並救援。
+- 吸引範圍約為目前救援碰撞判定半徑的 2 倍。
+- 吸引發生時仍要走 `DETECTED → RESCUED` 流程，並加入 `RescueGroup`。
+
 #### A-5 行星與邊界
 
 - 實作行星引力。
 - 實作排斥力場。
+- 實作非恆星行星慢速公轉，且公轉半徑縮為目前生成半徑的 0.6 倍。
 - 實作子彈撞行星的碰撞查詢接口。
 - 實作 `BoundarySystem`。
 
@@ -1006,6 +1083,7 @@ model/PlayerBullet.java
 - 同一個 `IdolGroup` 生成的所有 Idol 使用同一張 `photo` 貼圖。
 - 展示版所有 `IdolGroup` 的音樂先固定為 `/music/supernova.mp3`，音量依雷達脈衝強度等比調整。
 - 生成靜態射擊型敵人。
+- 敵方單位數量必須大幅增加，展示版以每顆行星至少 4 座靜態衛星砲塔作為基準，形成可讀但有壓力的防線。
 - 記錄全地圖原始 Idol 總數。
 
 #### B-2 Idol 狀態機
@@ -1254,6 +1332,8 @@ utils/ResourceManager.java
 - 靠近行星危險區震動。
 - Boost 尾翼。
 - 大角度 Drift 殘影。
+- ENDING_FREEZE 停格 0.15 秒與 impact 音效。
+- 本版刪除結算動畫前 Bullet Time，停格後直接進 Result Screen。
 - Bullet 撞行星火花。
 - Enemy 消滅爆炸。
 - Idol 救援特效。
