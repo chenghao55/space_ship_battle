@@ -53,6 +53,7 @@ public class GameLoop extends AnimationTimer {
             if (gameManager.getCurrentState() == GameState.PLAYING 
                     || gameManager.getCurrentState() == GameState.BULLET_TIME 
                     || gameManager.getCurrentState() == GameState.PAUSED) {
+                    || gameManager.getCurrentState() == GameState.ENDING_FREEZE
                 hudManager.setVisible(true);
                 if (gameManager.getCurrentState() != GameState.PAUSED) {
                     hudManager.update(gameManager, dt);

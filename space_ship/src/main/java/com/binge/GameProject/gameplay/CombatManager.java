@@ -30,6 +30,7 @@ public class CombatManager {
             if (distance <= enemy.getAggroRadius() && enemy.canShoot()) {
                 Vector2D direction = calculatePredictiveAim(enemy, player, distance);
                 adder.add(new EnemyBullet(enemy.getPosition().x, enemy.getPosition().y, direction.multiply(ENEMY_BULLET_SPEED)));
+                enemy.playMuzzleFlash();
                 enemy.resetShootCooldown();
                 if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
                     com.binge.GameProject.audio.AudioSystem.getInstance().playSpatialClip(

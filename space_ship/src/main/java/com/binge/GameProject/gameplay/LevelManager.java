@@ -13,6 +13,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LevelManager {
+    private static final double PLANET_ORBIT_RADIUS_SCALE = 0.6;
+    private static final double PLANET_ORBIT_PAUSE_DISTANCE = 3600.0;
+    private static final double PLANET_ORBIT_RESUME_DISTANCE = 4300.0;
+    private static final int ENEMIES_PER_PLANET = 4;
+    private static final double ENEMY_CLUSTER_BASE_DISTANCE = 1250.0;
+    private static final double ENEMY_CLUSTER_DISTANCE_STEP = 230.0;
     private final List<Planet> planets = new ArrayList<>();
     private final List<IdolGroup> idolGroups = new ArrayList<>();
     private final List<Idol> idols = new ArrayList<>();
@@ -71,10 +77,14 @@ public class LevelManager {
             coords[1][0] = -2000; coords[1][1] = 5000;
             coords[2][0] = -3000; coords[2][1] = -3000;
         }
+        scalePlanetOrbitRadii(coords, PLANET_ORBIT_RADIUS_SCALE);
 
         Planet aurora = new Planet(coords[0][0], coords[0][1], 267, 500000, Color.web("#3ec7ff"));
         Planet neon = new Planet(coords[1][0], coords[1][1], 210, 300000, Color.web("#ff4f9a"));
         Planet lunar = new Planet(coords[2][0], coords[2][1], 160, 120000, Color.web("#d8d8e8"));
+        aurora.enableOrbitAround(sun, 0.70);
+        neon.enableOrbitAround(sun, -0.52);
+        lunar.enableOrbitAround(sun, 0.43);
 
         addPlanet(aurora, consumer);
         addPlanet(neon, consumer);
@@ -93,12 +103,21 @@ public class LevelManager {
                 new double[][]{{280, 65, 9}, {360, 236, -7}},
                 "/photo/c.jpg", "/music/supernova.mp3", consumer);
 
-        // 為每顆行星產生一個守衛敵人
+        // 為每顆行星建立多座外側衛星砲塔，讓救援路線穿過更密集的防線。
         for (int i = 0; i < 3; i++) {
-            double angle = rand.nextDouble() * 2 * Math.PI;
-            double enemyDist = 1500.0 + rand.nextDouble() * 300.0;
-            double ex = coords[i][0] + Math.cos(angle) * enemyDist;
-            double ey = coords[i][1] + Math.sin(angle) * enemyDist;
+            addEnemyClusterAroundPlanet(coords[i][0], coords[i][1], rand, consumer);
+        }
+    }
+
+    private void addEnemyClusterAroundPlanet(double planetX, double planetY, java.util.Random rand, ObjectConsumer consumer) {
+        double outwardAngle = Math.atan2(planetY, planetX);
+        double[] fanOffsets = {-72.0, -24.0, 24.0, 72.0};
+
+        for (int i = 0; i < ENEMIES_PER_PLANET; i++) {
+            double angle = outwardAngle + Math.toRadians(fanOffsets[i]) + Math.toRadians(rand.nextDouble() * 12.0 - 6.0);
+            double enemyDist = ENEMY_CLUSTER_BASE_DISTANCE + ENEMY_CLUSTER_DISTANCE_STEP * i + rand.nextDouble() * 90.0;
+            double ex = planetX + Math.cos(angle) * enemyDist;
+            double ey = planetY + Math.sin(angle) * enemyDist;
             addEnemy(new Enemy(ex, ey), consumer);
         }
     }
@@ -111,6 +130,57 @@ public class LevelManager {
     private void addEnemy(Enemy enemy, ObjectConsumer consumer) {
         enemies.add(enemy);
         consumer.add(enemy);
+    }
+
+    public void updatePlanetOrbitAvoidance() {
+        List<Planet> pausedPlanets = new ArrayList<>();
+
+        for (int i = 0; i < planets.size(); i++) {
+            Planet a = planets.get(i);
+            if (!a.hasOrbit()) continue;
+            for (int j = i + 1; j < planets.size(); j++) {
+                Planet b = planets.get(j);
+                if (!b.hasOrbit()) continue;
+                double distance = a.getPosition().distance(b.getPosition());
+                if (distance < PLANET_ORBIT_PAUSE_DISTANCE) {
+                    markPlanetPaused(pausedPlanets, chooseBehindPlanet(a, b));
+                } else if (distance < PLANET_ORBIT_RESUME_DISTANCE) {
+                    if (a.isOrbitPaused()) markPlanetPaused(pausedPlanets, a);
+                    if (b.isOrbitPaused()) markPlanetPaused(pausedPlanets, b);
+                }
+            }
+        }
+
+        for (Planet planet : planets) {
+            if (planet.hasOrbit()) {
+                planet.setOrbitPaused(pausedPlanets.contains(planet));
+            }
+        }
+    }
+
+    private void markPlanetPaused(List<Planet> pausedPlanets, Planet planet) {
+        if (!pausedPlanets.contains(planet)) {
+            pausedPlanets.add(planet);
+        }
+    }
+
+    private Planet chooseBehindPlanet(Planet a, Planet b) {
+        double aProgress = normalizedOrbitProgress(a);
+        double bProgress = normalizedOrbitProgress(b);
+        return aProgress <= bProgress ? a : b;
+    }
+
+    private double normalizedOrbitProgress(Planet planet) {
+        double angle = planet.getOrbitAngle() % 360.0;
+        if (angle < 0) angle += 360.0;
+        return planet.getOrbitSpeed() >= 0 ? angle : 360.0 - angle;
+    }
+
+    private void scalePlanetOrbitRadii(double[][] coords, double scale) {
+        for (double[] coord : coords) {
+            coord[0] *= scale;
+            coord[1] *= scale;
+        }
     }
 
     private void makeStarBrightAndOpaque(Planet star) {
