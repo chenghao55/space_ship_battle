@@ -50,7 +50,9 @@ public class GameLoop extends AnimationTimer {
 
         // 3. 更新 UI 介面 (例如：更新目前的速度數值與警告文字)
         if (hudManager != null) {
-            if (gameManager.getCurrentState() == GameState.PLAYING || gameManager.getCurrentState() == GameState.BULLET_TIME) {
+            if (gameManager.getCurrentState() == GameState.PLAYING
+                    || gameManager.getCurrentState() == GameState.ENDING_FREEZE
+                    || gameManager.getCurrentState() == GameState.BULLET_TIME) {
                 hudManager.setVisible(true);
                 hudManager.update(gameManager, dt);
             } else {

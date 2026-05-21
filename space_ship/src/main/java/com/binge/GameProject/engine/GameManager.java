@@ -42,6 +42,7 @@ public class GameManager {
     private final Group worldRoot;
     private final CameraManager cameraManager;
     private double remainingTime = 180.0;
+    private double endingFreezeTimer = 0.0;
     private ScoreResult scoreResult;
 
     public GameManager(Group worldRoot, CameraManager cameraManager) {
@@ -70,6 +71,14 @@ public class GameManager {
             return;
         }
 
+        if (currentState == GameState.ENDING_FREEZE) {
+            endingFreezeTimer -= dt;
+            if (endingFreezeTimer <= 0) {
+                finishMission();
+            }
+            return;
+        }
+
         if (currentState == GameState.PLAYING) {
             remainingTime = Math.max(0, remainingTime - dt);
             if (remainingTime <= 0) {
@@ -81,6 +90,7 @@ public class GameManager {
         timeScaleController.update(dt);
         double scaledDt = dt * timeScaleController.getTimeScale();
 
+        levelManager.updatePlanetOrbitAvoidance();
         updateObjects(scaledDt);
         rescueManager.update(player, levelManager.getIdols(), scaledDt);
         audioSystem.updateIdolGroupVoices(levelManager.getIdolGroups(), player, scaledDt);
@@ -108,8 +118,9 @@ public class GameManager {
         }
 
         if (currentState == GameState.PLAYING && missionManager.shouldStartBulletTime(levelManager.getIdols(), player.getHp())) {
-            currentState = GameState.BULLET_TIME;
-            timeScaleController.startBulletTime(2.5);
+            currentState = GameState.ENDING_FREEZE;
+            endingFreezeTimer = 0.15;
+            audioSystem.playEndingImpact();
             if (cameraManager != null) cameraManager.addCameraShake(8, 0.5);
         }
 

@@ -22,6 +22,7 @@ public class MissionResultUI {
     private VBox leftStats;
     private Text rankLabel;
     private Text subTitle;
+    private ResultSequenceManager resultSequenceManager;
 
     private Runnable onRetry;
     private Runnable onReturnToMenu;
@@ -63,6 +64,7 @@ public class MissionResultUI {
         rankLabel = new Text("RANK: -");
         rankLabel.setFont(new Font("Consolas", 48));
         rankLabel.setFill(Color.web("#FFD700")); // 金色
+        resultSequenceManager = new ResultSequenceManager(leftStats, rankLabel);
         
         Text bonus1 = new Text("+ IDOL RESCUE DATA VERIFIED");
         bonus1.setFont(new Font("Consolas", 18));
@@ -116,14 +118,8 @@ public class MissionResultUI {
     }
 
     public void updateResult(ScoreResult result) {
-        leftStats.getChildren().clear();
-        addStatRow(leftStats, "TOTAL IDOLS:", String.valueOf(result.getTotalCount()));
-        addStatRow(leftStats, "RESCUED:", String.valueOf(result.getRescuedCount()));
-        addStatRow(leftStats, "LOST:", String.valueOf(result.getLostCount()));
-        addStatRow(leftStats, "HP LEFT:", String.valueOf(result.getRemainingHp()));
-        addStatRow(leftStats, "RESCUE RATE:", String.format("%.0f%%", result.getRescuedRatio() * 100.0));
-        rankLabel.setText("RANK: " + result.getRating());
         subTitle.setText(result.getRemainingHp() <= 0 ? "MISSION FAILED // SHIP LOST" : "GALACTIC HARMONY RESCUE REPORT");
+        resultSequenceManager.start(result);
     }
 
     private Button createStyledButton(String text) {

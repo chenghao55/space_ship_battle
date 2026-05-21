@@ -24,6 +24,8 @@ public class AudioSystem {
     private AudioClip explosionSfx;
     private AudioClip hitSfx;
     private AudioClip switchSfx;
+    private AudioClip endingImpactSfx;
+    private AudioClip freezeGlitchSfx;
 
     // MediaPlayer 實例 (適用長背景音與環境音)
     private MediaPlayer menuMusicPlayer;
@@ -50,6 +52,8 @@ public class AudioSystem {
             explosionSfx = new AudioClip(getClass().getResource("/音效/explosion.mp3").toExternalForm());
             hitSfx = new AudioClip(getClass().getResource("/音效/hit.mp3").toExternalForm());
             switchSfx = new AudioClip(getClass().getResource("/音效/switchSound.mp3").toExternalForm());
+            endingImpactSfx = safeLoadClip("/music/sfx_end_impact.mp3");
+            freezeGlitchSfx = safeLoadClip("/music/sfx_freeze_glitch.mp3");
 
             // 載入 MediaPlayer
             menuMusicPlayer = createLoopingPlayer("/音效/background_scifi.mp3", 0.7);
@@ -60,6 +64,11 @@ public class AudioSystem {
             System.err.println("Error loading audio resources: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private AudioClip safeLoadClip(String resourcePath) {
+        var url = getClass().getResource(resourcePath);
+        return url == null ? null : new AudioClip(url.toExternalForm());
     }
 
     private MediaPlayer createLoopingPlayer(String resourcePath, double defaultVol) {
@@ -250,6 +259,25 @@ public class AudioSystem {
 
     public void playHit() {
         if (hitSfx != null) hitSfx.play();
+    }
+
+    public void playEndingImpact() {
+        if (endingImpactSfx != null) endingImpactSfx.play(0.9);
+    }
+
+    public void playResultTick() {
+        if (freezeGlitchSfx != null) freezeGlitchSfx.play(0.18);
+    }
+
+    public void playRatingReveal(String rating) {
+        double volume = switch (rating) {
+            case "S" -> 1.0;
+            case "A" -> 0.82;
+            case "B" -> 0.62;
+            case "C" -> 0.46;
+            default -> 0.32;
+        };
+        if (endingImpactSfx != null) endingImpactSfx.play(volume);
     }
 
     public void playSfx(String id) {

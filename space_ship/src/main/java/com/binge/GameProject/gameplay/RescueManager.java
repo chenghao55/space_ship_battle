@@ -8,6 +8,8 @@ import com.binge.GameProject.physics.Hitbox;
 import java.util.List;
 
 public class RescueManager {
+    private static final double IDOL_BODY_RADIUS = 18.0;
+    private static final double RESCUE_ATTRACTION_EXTRA_RADIUS = 52.0;
     private String lastEventText = "";
     private double lastEventTimer = 0;
 
@@ -23,18 +25,37 @@ public class RescueManager {
                 idol.setVolume(Math.min(1.0, (idol.getDetectRadius() - distance) / idol.getDetectRadius()));
             }
 
+            if (idol.getState() == IdolState.HIDDEN && isWithinAttractionRange(player, idol)) {
+                idol.detect();
+            }
+
             if (idol.getState() == IdolState.DETECTED) {
                 for (Hitbox hitbox : player.getRescueHitboxes()) {
-                    if (hitbox.intersects(idol.getPosition(), 18)) {
-                        idol.rescue();
-                        player.getRescueGroup().add(idol);
-                        lastEventText = "RESCUED: " + idol.getDisplayName();
-                        lastEventTimer = 2.0;
+                    if (isRescueTriggered(hitbox, idol)) {
+                        rescue(player, idol);
                         break;
                     }
                 }
             }
         }
+    }
+
+    private boolean isWithinAttractionRange(Player player, Idol idol) {
+        for (Hitbox hitbox : player.getRescueHitboxes()) {
+            if (isRescueTriggered(hitbox, idol)) return true;
+        }
+        return false;
+    }
+
+    private boolean isRescueTriggered(Hitbox hitbox, Idol idol) {
+        return hitbox.intersects(idol.getPosition(), IDOL_BODY_RADIUS + RESCUE_ATTRACTION_EXTRA_RADIUS);
+    }
+
+    private void rescue(Player player, Idol idol) {
+        idol.rescue();
+        player.getRescueGroup().add(idol);
+        lastEventText = "RESCUED: " + idol.getDisplayName();
+        lastEventTimer = 2.0;
     }
 
     public Idol loseLastRescued(Player player) {

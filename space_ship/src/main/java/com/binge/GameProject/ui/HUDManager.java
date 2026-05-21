@@ -41,7 +41,7 @@ public class HUDManager {
         drawSoundWave(gameManager, player, dt);
         drawPortraits(player);
         drawWarnings(gameManager);
-        drawBulletTime(gameManager);
+        drawEndingEffects(gameManager);
     }
 
     private void drawTopStatus(GameManager gameManager, Player player) {
@@ -178,10 +178,34 @@ public class HUDManager {
         gc.fillText(warning, 430, 84);
     }
 
-    private void drawBulletTime(GameManager gameManager) {
+    private void drawEndingEffects(GameManager gameManager) {
+        if (gameManager.getCurrentState() == GameState.ENDING_FREEZE) {
+            gc.setFill(Color.web("#ffffff", 0.78));
+            gc.fillRect(0, 0, hudCanvas.getWidth(), hudCanvas.getHeight());
+            gc.setFill(Color.web("#101015", 0.55));
+            gc.fillRect(0, 0, hudCanvas.getWidth(), hudCanvas.getHeight());
+            gc.setFill(Color.WHITE);
+            gc.setFont(new Font("Consolas", 36));
+            gc.fillText("IMPACT // FINAL LOCK", 420, 350);
+            return;
+        }
+
         if (gameManager.getCurrentState() != GameState.BULLET_TIME) return;
-        gc.setFill(Color.web("#ffffff", 0.12));
+        gc.setFill(Color.web("#020308", 0.34));
         gc.fillRect(0, 0, hudCanvas.getWidth(), hudCanvas.getHeight());
+        gc.setFill(Color.web("#ffffff", 0.10 + Math.random() * 0.08));
+        gc.fillRect(0, 0, hudCanvas.getWidth(), hudCanvas.getHeight());
+        gc.setStroke(Color.web("#d6ff54", 0.30));
+        gc.setLineWidth(2);
+        for (int i = 0; i < 9; i++) {
+            double y = 90 + i * 58 + Math.sin(pulsePhase + i) * 8;
+            gc.strokeLine(180, y, 1100, y + Math.random() * 10 - 5);
+        }
+        gc.setStroke(Color.web("#9efcff", 0.18));
+        for (int i = 0; i < 6; i++) {
+            double offset = i * 7;
+            gc.strokeRect(185 - offset, 110 - offset, 910 + offset * 2, 450 + offset * 2);
+        }
         gc.setFill(Color.web("#d6ff54"));
         gc.setFont(new Font("Consolas", 34));
         gc.fillText("BULLET TIME // FINAL RESCUE", 390, 350);
