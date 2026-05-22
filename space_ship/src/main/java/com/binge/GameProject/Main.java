@@ -118,6 +118,10 @@ public class Main extends Application {
         this.pauseUI = new PauseUI(uiRoot, WIDTH, HEIGHT);
         pauseUI.setOnDisplayModeChange(this::setDisplayMode);
         
+        // 雙向音量同步
+        mainMenuUI.setOnVolumeChange(val -> pauseUI.setVolume(val));
+        pauseUI.setOnVolumeChange(val -> mainMenuUI.setVolume(val));
+        
         // 7. 啟動遊戲主迴圈
         // GameLoop 是一個計時器，每秒會執行約 60 次來更新遊戲畫面與邏輯
         GameLoop gameLoop = new GameLoop(gameManager, cameraManager, hudManager, missionResultUI);

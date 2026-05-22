@@ -24,6 +24,8 @@ public class PauseUI {
     private PauseButton btnDisplayMode;
     private DisplayMode currentDisplayMode = DisplayMode.WINDOWED;
     private java.util.function.Consumer<DisplayMode> onDisplayModeChange;
+    private SciFiSlider sliderVolume;
+    private java.util.function.Consumer<Double> onVolumeChange;
     
     private Runnable onResume;
     private Runnable onRestart;
@@ -104,9 +106,20 @@ public class PauseUI {
             }
         });
         
+        double initVol = AudioSystem.getInstance() != null ? AudioSystem.getInstance().getMasterVolume() : 1.0;
+        sliderVolume = new SciFiSlider("VOLUME: ", 320, 50, initVol);
+        sliderVolume.setOnValueChange(val -> {
+            if (AudioSystem.getInstance() != null) {
+                AudioSystem.getInstance().setMasterVolume(val);
+            }
+            if (onVolumeChange != null) {
+                onVolumeChange.accept(val);
+            }
+        });
+
         settingsPanel.getChildren().addAll(
             settingsTitle,
-            new Text("AUDIO: 100%"),
+            sliderVolume,
             new Text("GRAPHICS: CINEMATIC"),
             btnDisplayMode,
             btnBack
@@ -130,6 +143,16 @@ public class PauseUI {
 
     public void setOnDisplayModeChange(java.util.function.Consumer<DisplayMode> callback) {
         this.onDisplayModeChange = callback;
+    }
+
+    public void setVolume(double val) {
+        if (sliderVolume != null) {
+            sliderVolume.setValue(val);
+        }
+    }
+
+    public void setOnVolumeChange(java.util.function.Consumer<Double> callback) {
+        this.onVolumeChange = callback;
     }
     
     public void setDisplayModeText(DisplayMode mode) {

@@ -25,6 +25,8 @@ public class MainMenuUI {
     private MenuButton btnDisplayMode;
     private DisplayMode currentDisplayMode = DisplayMode.WINDOWED;
     private java.util.function.Consumer<DisplayMode> onDisplayModeChange;
+    private SciFiSlider sliderVolume;
+    private java.util.function.Consumer<Double> onVolumeChange;
 
     public MainMenuUI(Group root, int width, int height) {
         this.uiRoot = root;
@@ -103,9 +105,21 @@ public class MainMenuUI {
             }
         });
         
+        double initVol = com.binge.GameProject.audio.AudioSystem.getInstance() != null ?
+                com.binge.GameProject.audio.AudioSystem.getInstance().getMasterVolume() : 1.0;
+        sliderVolume = new SciFiSlider("VOLUME: ", 300, 50, initVol);
+        sliderVolume.setOnValueChange(val -> {
+            if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                com.binge.GameProject.audio.AudioSystem.getInstance().setMasterVolume(val);
+            }
+            if (onVolumeChange != null) {
+                onVolumeChange.accept(val);
+            }
+        });
+
         settingsPanel.getChildren().addAll(
             settingsTitle,
-            new Text("AUDIO: 100%"),
+            sliderVolume,
             new Text("GRAPHICS: CINEMATIC"),
             btnDisplayMode,
             btnBack
@@ -150,6 +164,16 @@ public class MainMenuUI {
     
     public void setOnDisplayModeChange(java.util.function.Consumer<DisplayMode> callback) {
         this.onDisplayModeChange = callback;
+    }
+
+    public void setVolume(double val) {
+        if (sliderVolume != null) {
+            sliderVolume.setValue(val);
+        }
+    }
+
+    public void setOnVolumeChange(java.util.function.Consumer<Double> callback) {
+        this.onVolumeChange = callback;
     }
     
     public void setDisplayModeText(DisplayMode mode) {

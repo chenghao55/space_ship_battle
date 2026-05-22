@@ -22,12 +22,24 @@ public class MusicMixer {
 
         MediaPlayer player = groupPlayers.computeIfAbsent(groupId, id -> createLoopingPlayer(songPath));
         if (player != null) {
-            player.setVolume(clamped);
+            double master = AudioSystem.getInstance() == null ? 1.0 : AudioSystem.getInstance().getMasterVolume();
+            player.setVolume(clamped * master);
             player.setBalance(Math.max(-1.0, Math.min(1.0, balance)));
             if (clamped > 0.01 && player.getStatus() != MediaPlayer.Status.PLAYING) {
                 player.play();
             } else if (clamped <= 0.01 && player.getStatus() == MediaPlayer.Status.PLAYING) {
                 player.pause();
+            }
+        }
+    }
+
+    public void updateAllVolumes(double masterVolume) {
+        for (Map.Entry<String, MediaPlayer> entry : groupPlayers.entrySet()) {
+            String groupId = entry.getKey();
+            MediaPlayer player = entry.getValue();
+            if (player != null) {
+                double baseVol = groupVolumes.getOrDefault(groupId, 0.0);
+                player.setVolume(baseVol * masterVolume);
             }
         }
     }

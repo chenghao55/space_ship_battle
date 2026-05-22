@@ -34,6 +34,26 @@ public class AudioSystem {
     private MediaPlayer scifiHumPlayer;
 
     private double silenceTimer = 0.0;
+    private double masterVolume = 1.0;
+
+    public double getMasterVolume() {
+        return masterVolume;
+    }
+
+    public void setMasterVolume(double volume) {
+        this.masterVolume = Math.max(0.0, Math.min(1.0, volume));
+        
+        // Update looping players
+        if (menuMusicPlayer != null) {
+            menuMusicPlayer.setVolume(0.7 * this.masterVolume);
+        }
+        if (scifiHumPlayer != null) {
+            scifiHumPlayer.setVolume(0.5 * this.masterVolume);
+        }
+        
+        // Update mixer
+        mixer.updateAllVolumes(this.masterVolume);
+    }
 
     public AudioSystem() {
         instance = this;
@@ -119,7 +139,7 @@ public class AudioSystem {
         
         // 3D sound_effects距離衰減 (超過 9000.0 就聽不見)
         double senseRange = 9000.0;
-        double volume = Math.max(0, 1.0 - dist / senseRange) * maxVolume;
+        double volume = Math.max(0, 1.0 - dist / senseRange) * maxVolume * masterVolume;
         
         if (volume > 0.01) {
             double balance = 0.0;
@@ -153,7 +173,7 @@ public class AudioSystem {
         double senseRange = 3000.0;
         if (nearest != null && minDist <= senseRange) {
             // 音量衰減 (最大音量 0.25，低沉警示音)
-            double volume = Math.max(0, 1.0 - minDist / senseRange) * 0.25;
+            double volume = Math.max(0, 1.0 - minDist / senseRange) * 0.25 * masterVolume;
 
             // 計算左右聲道平衡
             Vector2D diff = nearest.getPosition().subtract(player.getPosition());
@@ -191,7 +211,7 @@ public class AudioSystem {
         if (enginePlayer == null) return;
 
         if (isAccelerating || isBoosting) {
-            double targetVol = isBoosting ? 0.7 : 0.4;
+            double targetVol = (isBoosting ? 0.7 : 0.4) * masterVolume;
             double curVol = enginePlayer.getVolume();
             enginePlayer.setVolume(curVol + (targetVol - curVol) * 0.15);
 
@@ -246,27 +266,27 @@ public class AudioSystem {
 
     // 按鈕與一般sound_effects播放方法
     public void playButtonPress() {
-        if (buttonPressSfx != null) buttonPressSfx.play();
+        if (buttonPressSfx != null) buttonPressSfx.play(masterVolume);
     }
 
     public void playSwitch() {
-        if (switchSfx != null) switchSfx.play();
+        if (switchSfx != null) switchSfx.play(masterVolume);
     }
 
     public void playExplosion() {
-        if (explosionSfx != null) explosionSfx.play();
+        if (explosionSfx != null) explosionSfx.play(masterVolume);
     }
 
     public void playHit() {
-        if (hitSfx != null) hitSfx.play();
+        if (hitSfx != null) hitSfx.play(masterVolume);
     }
 
     public void playEndingImpact() {
-        if (endingImpactSfx != null) endingImpactSfx.play(0.9);
+        if (endingImpactSfx != null) endingImpactSfx.play(0.9 * masterVolume);
     }
 
     public void playResultTick() {
-        if (freezeGlitchSfx != null) freezeGlitchSfx.play(0.18);
+        if (freezeGlitchSfx != null) freezeGlitchSfx.play(0.18 * masterVolume);
     }
 
     public void playRatingReveal(String rating) {
@@ -277,7 +297,7 @@ public class AudioSystem {
             case "C" -> 0.46;
             default -> 0.32;
         };
-        if (endingImpactSfx != null) endingImpactSfx.play(volume);
+        if (endingImpactSfx != null) endingImpactSfx.play(volume * masterVolume);
     }
 
     public void playSfx(String id) {
