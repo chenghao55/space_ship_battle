@@ -16,14 +16,16 @@ public class GameLoop extends AnimationTimer {
     private CameraManager cameraManager;
     private HUDManager hudManager;
     private MissionResultUI missionResultUI;
+    private javafx.scene.Scene scene;
     private boolean missionClearTriggered = false;
 
     // 建構子：接收並儲存這三個管理員
-    public GameLoop(GameManager gameManager, CameraManager cameraManager, HUDManager hudManager, MissionResultUI missionResultUI) {
+    public GameLoop(GameManager gameManager, CameraManager cameraManager, HUDManager hudManager, MissionResultUI missionResultUI, javafx.scene.Scene scene) {
         this.gameManager = gameManager;
         this.cameraManager = cameraManager;
         this.hudManager = hudManager;
         this.missionResultUI = missionResultUI;
+        this.scene = scene;
     }
 
     // 這個方法每幀都會被自動呼叫一次
@@ -69,6 +71,23 @@ public class GameLoop extends AnimationTimer {
             if (missionResultUI != null) {
                 missionResultUI.updateResult(gameManager.getScoreResult());
                 missionResultUI.show();
+            }
+        }
+
+        // 5. 更新滑鼠游標顯示狀態 (遊戲中隱藏，選單/暫停時顯示)
+        if (scene != null) {
+            GameState state = gameManager.getCurrentState();
+            if (state == GameState.PLAYING 
+                    || state == GameState.STARTING_TRANSITION 
+                    || state == GameState.ENDING_FREEZE 
+                    || state == GameState.BULLET_TIME) {
+                if (scene.getCursor() != javafx.scene.Cursor.NONE) {
+                    scene.setCursor(javafx.scene.Cursor.NONE);
+                }
+            } else {
+                if (scene.getCursor() != javafx.scene.Cursor.DEFAULT) {
+                    scene.setCursor(javafx.scene.Cursor.DEFAULT);
+                }
             }
         }
     }

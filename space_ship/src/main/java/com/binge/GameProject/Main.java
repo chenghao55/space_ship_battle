@@ -124,7 +124,7 @@ public class Main extends Application {
         
         // 7. 啟動遊戲主迴圈
         // GameLoop 是一個計時器，每秒會執行約 60 次來更新遊戲畫面與邏輯
-        GameLoop gameLoop = new GameLoop(gameManager, cameraManager, hudManager, missionResultUI);
+        GameLoop gameLoop = new GameLoop(gameManager, cameraManager, hudManager, missionResultUI, scene);
         
         // 設定點擊 Start Mission 後的動畫過場邏輯
         mainMenuUI.setOnStartMission(() -> {
