@@ -5,48 +5,6 @@
 
 ---
 
-## 一、改版原則
-
-### 1. 原本 Inspiration.mdc 不刪除的內容
-
-以下設計保留：
-
-- 2.5D 太空遊戲
-- 飛船慣性與滑行
-- Boost 加速
-- 行星引力
-- 引力彈弓
-- 排斥力場
-- 第三人稱追尾鏡頭
-- 動態 FOV
-- Camera Shake
-- 雷達探索
-- 科幻 HUD
-- 太空背景與視差
-- JavaFX 3D Node 架構
-
-### 2. 原本 Architecture.md 不刪除的模組
-
-以下五大模組保留：
-
-1. Core Engine
-2. Physics & Movement System
-3. Rendering & Camera System
-4. Game Logic & Entities
-5. UI & Exploration System
-
-新版只新增：
-
-- Mission & Rating System
-- Idol Rescue System
-- RescueGroup / Snake Hitbox
-- Enemy Combat System
-- RadarSystem 雙層雷達
-- AudioSystem 音樂淡入淡出與防 Echo Bug
-- Bullet Time 結算演出
-
----
-
 ## 二、系統總覽
 
 ```text
@@ -819,7 +777,7 @@ void start(ScoreResult scoreResult);
 
 ### 責任
 
-管理環境音、女團歌曲、同團最近聲源、提示音、受擊與流失語音。
+管理環境音、選單背景音樂、女團歌曲、同團最近聲源、提示音、受擊與流失語音。
 
 ```java
 class AudioSystem {
@@ -828,8 +786,25 @@ class AudioSystem {
     void playSfx(String id);
     void playLostVoice(Idol idol);
     void playHintSound(Vector2D direction);
+    void playMenuMusic();
+    void stopMenuMusic();
 }
 ```
+
+### 選單背景音樂 (BGM) 控制規則
+
+1. 選單背景音樂 (BGM) 的啟動與關閉狀態由高階遊戲狀態變化（如 `Main.java` 或 `GameManager` 中的狀態改變）進行控制。
+2. **啟動播放時機**：
+   - 遊戲初次啟動進入主選單。
+   - 玩家暫停遊戲（`pauseGame`）。
+   - 從結算選單或暫停選單返回主選單（`setOnReturnToMenu`）。
+3. **停止播放時機**：
+   - 從主選單開始任務過渡（`setOnStartMission`）。
+   - 恢復遊戲繼續遊玩（`resumeGame`）。
+   - 在暫停選單中選擇重新開始任務（`setOnRestart`）。
+4. **無縫過渡與防靜音設計**：
+   - 為了在暫停選單與主選單之間提供無縫的音樂體驗，並避免 JavaFX `MediaPlayer` 非同步 `stop()` 和 `play()` 狀態切換時可能發生的競態條件（Race Condition）導致背景音樂靜音之問題。
+   - `GameManager.resetGame()` **不得**主動停止選單音樂播放。在點擊返回主選單時，保持音樂連續播放而不執行「先停止後重新播放」的過程。
 
 ### MusicMixer
 
