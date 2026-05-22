@@ -431,13 +431,7 @@ Result Screen 讀取 ScoreResult，依序跳動顯示 rescue、lost、HP、ratio
 
 這是展示時的重要視覺亮點。
 
-音效規則：
-
-- 結束停格播放 resources/pop_musics 內的 impact sfx。
 - Result 數字跳動播放 tick sfx，但限制每 0.04~0.08 秒一次，不能每幀播放。
-- Rating 根據 F / C / B / A / S 播放不同強度 reveal 音效。
-- 不使用任何受版權保護作品的素材或名稱，只做高能量戰鬥結束節奏。
-
 ---
 
 ## 十四、展示版必做功能
