@@ -12,6 +12,7 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
+import com.binge.GameProject.DisplayMode;
 
 public class MainMenuUI {
     private Group uiRoot;
@@ -20,6 +21,10 @@ public class MainMenuUI {
     private VBox settingsPanel;
     
     private Runnable onStartMission;
+    
+    private MenuButton btnDisplayMode;
+    private DisplayMode currentDisplayMode = DisplayMode.WINDOWED;
+    private java.util.function.Consumer<DisplayMode> onDisplayModeChange;
 
     public MainMenuUI(Group root, int width, int height) {
         this.uiRoot = root;
@@ -82,11 +87,27 @@ public class MainMenuUI {
         MenuButton btnBack = new MenuButton("BACK TO MENU");
         btnBack.setOnMouseClicked(e -> showMenu());
         
+        btnDisplayMode = new MenuButton("SCREEN: WINDOWED");
+        btnDisplayMode.setOnMouseClicked(e -> {
+            DisplayMode nextMode;
+            if (currentDisplayMode == DisplayMode.WINDOWED) {
+                nextMode = DisplayMode.BORDERLESS_WINDOWED;
+            } else if (currentDisplayMode == DisplayMode.BORDERLESS_WINDOWED) {
+                nextMode = DisplayMode.MAXIMIZED;
+            } else {
+                nextMode = DisplayMode.WINDOWED;
+            }
+            setDisplayModeText(nextMode);
+            if (onDisplayModeChange != null) {
+                onDisplayModeChange.accept(nextMode);
+            }
+        });
+        
         settingsPanel.getChildren().addAll(
             settingsTitle,
             new Text("AUDIO: 100%"),
             new Text("GRAPHICS: CINEMATIC"),
-            new Text("FULLSCREEN: ON"),
+            btnDisplayMode,
             btnBack
         );
         
@@ -127,6 +148,30 @@ public class MainMenuUI {
         ft.play();
     }
     
+    public void setOnDisplayModeChange(java.util.function.Consumer<DisplayMode> callback) {
+        this.onDisplayModeChange = callback;
+    }
+    
+    public void setDisplayModeText(DisplayMode mode) {
+        this.currentDisplayMode = mode;
+        if (btnDisplayMode != null) {
+            String modeStr;
+            switch (mode) {
+                case BORDERLESS_WINDOWED:
+                    modeStr = "BORDERLESS";
+                    break;
+                case MAXIMIZED:
+                    modeStr = "MAXIMIZED";
+                    break;
+                case WINDOWED:
+                default:
+                    modeStr = "WINDOWED";
+                    break;
+            }
+            btnDisplayMode.setText("SCREEN: " + modeStr);
+        }
+    }
+    
     private void showSettings() {
         menuPanel.setVisible(false);
         settingsPanel.setVisible(true);
@@ -141,6 +186,10 @@ public class MainMenuUI {
     private static class MenuButton extends StackPane {
         private Rectangle bg;
         private Text text;
+        
+        public void setText(String label) {
+            text.setText(label);
+        }
         
         public MenuButton(String label) {
             bg = new Rectangle(300, 50);
