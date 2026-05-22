@@ -120,6 +120,9 @@ public class Main extends Application {
 
         pauseUI.setOnRestart(() -> {
             pauseUI.hide();
+            if (AudioSystem.getInstance() != null) {
+                AudioSystem.getInstance().stopMenuMusic();
+            }
             gameManager.resetGame();
             gameLoop.resetMissionClearTrigger();
         });

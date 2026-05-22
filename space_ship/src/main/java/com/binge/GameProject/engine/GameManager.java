@@ -196,7 +196,6 @@ public class GameManager {
     }
 
     public void resetGame() {
-        audioSystem.stopMenuMusic();
         audioSystem.stopAll();
         for (GameObject obj : dynamicObjects) {
             if (obj.getView() != null) worldRoot.getChildren().remove(obj.getView());
