@@ -31,6 +31,7 @@ public class Main extends Application {
     private Scene scene;
     private javafx.scene.layout.Pane rootPane;
     private MainMenuUI mainMenuUI;
+    private PauseUI pauseUI;
     private Runnable updateScale;
 
     // start 方法是 JavaFX 應用程式開始執行的地方
@@ -114,7 +115,8 @@ public class Main extends Application {
         HUDManager hudManager = new HUDManager(uiRoot);
         MissionResultUI missionResultUI = new MissionResultUI(uiRoot, WIDTH, HEIGHT);
         this.mainMenuUI = new MainMenuUI(uiRoot, WIDTH, HEIGHT);
-        PauseUI pauseUI = new PauseUI(uiRoot, WIDTH, HEIGHT);
+        this.pauseUI = new PauseUI(uiRoot, WIDTH, HEIGHT);
+        pauseUI.setOnDisplayModeChange(this::setDisplayMode);
         
         // 7. 啟動遊戲主迴圈
         // GameLoop 是一個計時器，每秒會執行約 60 次來更新遊戲畫面與邏輯
@@ -300,6 +302,9 @@ public class Main extends Application {
         // 同步選單按鈕文字
         if (mainMenuUI != null) {
             mainMenuUI.setDisplayModeText(mode);
+        }
+        if (pauseUI != null) {
+            pauseUI.setDisplayModeText(mode);
         }
 
         // 更新縮放比例
