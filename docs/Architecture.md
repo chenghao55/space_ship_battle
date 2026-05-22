@@ -136,6 +136,26 @@ src/
 
 ---
 
+## 三之一、遊戲視窗、縮放與全螢幕設計 (Windowing, Scaling, and Fullscreen Design)
+
+### 視窗基礎設定
+- 遊戲預設設計解析度（Canvas Size）為 **1280 x 720**。
+- 視窗設為可調整大小（`resizable = true`），以利玩家在視窗模式下自由拖拉。
+
+### 畫面等比例縮放與置中（Aspect-Ratio Centering）
+- 主場景的根節點為 `Pane`，內部包裹一個 `Group gameScaleGroup`。
+- 透過 `javafx.scene.transform.Scale`，監聽 `scene` 的寬度與高度，動態計算最小的縮放比率（`finalScale = Math.min(scaleX, scaleY)`），保持 16:9 畫面長寬比。
+- 根據縮放後的尺寸與實際視窗解析度的差額，動態計算置中偏移量並進行位移（`translateX`/`translateY`），自動產生 Pillarbox（左右黑邊）或 Letterbox（上下黑邊），以確保在各種螢幕尺寸下遊戲畫面不變形。
+
+### 全螢幕模式 (Fullscreen Mode)
+- **快捷鍵切換**：遊戲透過鍵盤事件過濾器監聽 `F11` 或 `Alt + Enter`，在按下時會切換 Stage 的全螢幕模式。
+- **防止 ESC 鍵誤觸退出**：
+  - 將 Stage 的 `fullScreenExitKeyCombination` 設定為 `KeyCombination.NO_MATCH`。這能防止 JavaFX 預設「按下 `ESC` 即退出全螢幕」的行為。
+  - 此設計的必要性在於本遊戲需要以 `ESC` 鍵呼叫暫停選單，如此可確保玩家在全螢幕下按下 `ESC` 時僅會觸發暫停選單，而不會退出全螢幕。
+  - 使用 `fullScreenExitHint = ""` 隱藏系統預設的「按 ESC 退出全螢幕」文字提示，使介面更加乾淨原生。
+
+---
+
 ## 四、Class: GameManager
 
 ### 責任
