@@ -67,7 +67,7 @@ public class PauseUI {
             if (onRestart != null) onRestart.run();
         });
         
-        PauseButton btnSettings = new PauseButton("SYSTEM SETTINGS");
+        PauseButton btnSettings = new PauseButton("SETTINGS");
         btnSettings.setOnMouseClicked(e -> showSettings());
         
         PauseButton btnReturn = new PauseButton("ABORT TO MENU");
