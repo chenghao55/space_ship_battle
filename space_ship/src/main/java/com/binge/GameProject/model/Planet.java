@@ -5,7 +5,7 @@ import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Rotate;
 
-// Planet 代表遊戲中的星球 (包含提供光照的恆星，或提供引力的行星)
+// Planet 代表遊戲中的星球 (包含提供光照的恆星，以及提供引力、碰撞與救援配置的行星)
 public class Planet extends GameObject {
     private double mass;   // 星球的質量 (質量越大，引力越強)
     private double radius; // 星球的半徑 (大小)

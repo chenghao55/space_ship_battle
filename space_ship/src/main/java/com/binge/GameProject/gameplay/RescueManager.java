@@ -12,6 +12,13 @@ public class RescueManager {
     private static final double RESCUE_ATTRACTION_EXTRA_RADIUS = 52.0;
     private String lastEventText = "";
     private double lastEventTimer = 0;
+    private int totalRescuedCount;
+
+    public void reset() {
+        lastEventText = "";
+        lastEventTimer = 0;
+        totalRescuedCount = 0;
+    }
 
     public void update(Player player, List<Idol> idols, double dt) {
         lastEventTimer = Math.max(0, lastEventTimer - dt);
@@ -54,6 +61,7 @@ public class RescueManager {
     private void rescue(Player player, Idol idol) {
         idol.rescue();
         player.getRescueGroup().add(idol);
+        totalRescuedCount++;
         lastEventText = "RESCUED: " + idol.getDisplayName();
         lastEventTimer = 2.0;
     }
@@ -69,5 +77,9 @@ public class RescueManager {
 
     public String getEventText() {
         return lastEventTimer > 0 ? lastEventText : "";
+    }
+
+    public int getTotalRescuedCount() {
+        return totalRescuedCount;
     }
 }

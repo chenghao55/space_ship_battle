@@ -10,14 +10,22 @@ import com.binge.GameProject.model.Player;
 import com.binge.GameProject.physics.Hitbox;
 import com.binge.GameProject.physics.Vector2D;
 import com.binge.GameProject.rendering.CameraManager;
+import com.binge.GameProject.utils.GameConfig;
 
 import java.util.List;
 
 public class CombatManager {
-    private static final double ENEMY_BULLET_SPEED = 1350.0;
     private double invulnerabilityTimer;
     private String warningText = "";
     private double warningTimer;
+    private int enemyKillCount;
+
+    public void reset() {
+        invulnerabilityTimer = 0;
+        warningText = "";
+        warningTimer = 0;
+        enemyKillCount = 0;
+    }
 
     public void update(Player player, List<Enemy> enemies, List<GameObject> dynamicObjects, List<GameObject> staticObjects,
                        double dt, GameObjectAdder adder, DamageCallback damageCallback, CameraManager cameraManager) {
@@ -26,10 +34,11 @@ public class CombatManager {
 
         for (Enemy enemy : enemies) {
             if (!enemy.isAlive()) continue;
+            enemy.updateMovement(player, dt);
             double distance = enemy.getPosition().distance(player.getPosition());
             if (distance <= enemy.getAggroRadius() && enemy.canShoot()) {
                 Vector2D direction = calculatePredictiveAim(enemy, player, distance);
-                adder.add(new EnemyBullet(enemy.getPosition().x, enemy.getPosition().y, direction.multiply(ENEMY_BULLET_SPEED)));
+                adder.add(new EnemyBullet(enemy.getPosition().x, enemy.getPosition().y, direction.multiply(GameConfig.ENEMY_BULLET_SPEED)));
                 enemy.playMuzzleFlash();
                 enemy.resetShootCooldown();
                 if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
@@ -43,16 +52,11 @@ public class CombatManager {
             }
 
             if (distance < 55) {
-                enemy.takeDamage(99);
+                boolean destroyed = enemy.takeDamage(99);
                 if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
                     com.binge.GameProject.audio.AudioSystem.getInstance().playHit();
-                    com.binge.GameProject.audio.AudioSystem.getInstance().playSpatialClip(
-                        com.binge.GameProject.audio.AudioSystem.getInstance().getExplosionSfx(),
-                        enemy.getPosition(),
-                        player,
-                        1.0
-                    );
                 }
+                if (destroyed) playEnemyDestroyedFeedback(enemy, player, cameraManager);
                 damagePlayer(player, damageCallback, cameraManager, "COLLISION DAMAGE");
             }
         }
@@ -77,7 +81,7 @@ public class CombatManager {
                 for (Enemy enemy : enemies) {
                     if (!enemy.isAlive()) continue;
                     if (enemy.getPosition().distance(bullet.getPosition()) < 48) {
-                        enemy.takeDamage(1);
+                        boolean destroyed = enemy.takeDamage(1);
                         bullet.setDead(true);
                         if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
                             com.binge.GameProject.audio.AudioSystem.getInstance().playSpatialClip(
@@ -86,15 +90,8 @@ public class CombatManager {
                                 player,
                                 0.8
                             );
-                            if (!enemy.isAlive()) {
-                                com.binge.GameProject.audio.AudioSystem.getInstance().playSpatialClip(
-                                    com.binge.GameProject.audio.AudioSystem.getInstance().getExplosionSfx(),
-                                    enemy.getPosition(),
-                                    player,
-                                    1.0
-                                );
-                            }
                         }
+                        if (destroyed) playEnemyDestroyedFeedback(enemy, player, cameraManager);
                         warningText = "ENEMY HIT";
                         warningTimer = 0.8;
                         break;
@@ -116,7 +113,7 @@ public class CombatManager {
     }
 
     private Vector2D calculatePredictiveAim(Enemy enemy, Player player, double distance) {
-        double leadTime = Math.min(1.35, distance / ENEMY_BULLET_SPEED);
+        double leadTime = Math.min(1.35, distance / GameConfig.ENEMY_BULLET_SPEED);
         Vector2D predicted = player.getPosition().add(player.getVelocity().multiply(leadTime));
         Vector2D direction = predicted.subtract(enemy.getPosition()).normalize();
         if (direction.magnitudeSquared() == 0) {
@@ -125,18 +122,39 @@ public class CombatManager {
         return direction;
     }
 
+    private void playEnemyDestroyedFeedback(Enemy enemy, Player player, CameraManager cameraManager) {
+        enemyKillCount++;
+        if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+            com.binge.GameProject.audio.AudioSystem.getInstance().playSpatialClip(
+                com.binge.GameProject.audio.AudioSystem.getInstance().getExplosionSfx(),
+                enemy.getPosition(),
+                player,
+                1.0
+            );
+        }
+        if (cameraManager != null && player != null) {
+            double distance = enemy.getPosition().distance(player.getPosition());
+            double proximity = Math.max(0, 1.0 - distance / 2200.0);
+            cameraManager.addCameraShake(5.0 + proximity * 7.0, 0.18 + proximity * 0.07);
+        }
+    }
+
     private void damagePlayer(Player player, DamageCallback damageCallback, CameraManager cameraManager, String warning) {
         if (invulnerabilityTimer > 0) return;
-        player.takeDamage(1);
+        if (!player.tryTakeDamage(1)) return;
         damageCallback.onDamage();
         if (cameraManager != null) cameraManager.addCameraShake(16, 0.35);
-        invulnerabilityTimer = 1.0;
+        invulnerabilityTimer = GameConfig.PLAYER_INVINCIBLE_SECONDS;
         warningText = warning;
         warningTimer = 1.8;
     }
 
     public String getWarningText() {
         return warningTimer > 0 ? warningText : "";
+    }
+
+    public int getEnemyKillCount() {
+        return enemyKillCount;
     }
 
     public interface GameObjectAdder {

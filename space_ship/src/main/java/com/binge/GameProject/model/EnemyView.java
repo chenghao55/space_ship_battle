@@ -14,8 +14,11 @@ public class EnemyView {
     private final Group ring = new Group();
     private final Group flashGroup = new Group();
     private final Group debrisGroup = new Group();
+    private final Group explosionGroup = new Group();
     private final Sphere core = new Sphere(34);
-    private final PhongMaterial normalMaterial = new PhongMaterial(Color.web("#ff3355"));
+    private final Sphere explosionFlash = new Sphere(600);
+    private final Sphere shockFlash = new Sphere(350);
+    private final PhongMaterial normalMaterial;
     private final PhongMaterial hitMaterial = new PhongMaterial(Color.WHITE);
     private final PhongMaterial chargeMaterial = new PhongMaterial(Color.web("#ffeb8a"));
     private double hitFlashTimer;
@@ -26,11 +29,17 @@ public class EnemyView {
     private double ringAngle;
 
     public EnemyView(double aggroRadius) {
+        this(aggroRadius, Color.web("#ff3355"));
+    }
+
+    public EnemyView(double aggroRadius, Color coreColor) {
+        this.normalMaterial = new PhongMaterial(coreColor);
         buildRing();
         buildCannons();
         buildDebris();
+        buildExplosionFlash();
         buildCore();
-        root.getChildren().addAll(debrisGroup, ring, flashGroup, core);
+        root.getChildren().addAll(explosionGroup, debrisGroup, ring, flashGroup, core);
     }
 
     private void buildCore() {
@@ -91,12 +100,28 @@ public class EnemyView {
 
     private void buildDebris() {
         PhongMaterial debrisMaterial = new PhongMaterial(Color.web("#ff7a55"));
-        for (int i = 0; i < 10; i++) {
-            Box shard = new Box(12, 8, 26);
+        for (int i = 0; i < 18; i++) {
+            Box shard = new Box(14, 9, 32);
             shard.setMaterial(debrisMaterial);
             shard.setVisible(false);
             debrisGroup.getChildren().add(shard);
         }
+    }
+
+    private void buildExplosionFlash() {
+        PhongMaterial flashMaterial = new PhongMaterial(Color.web("#fff3b0"));
+        flashMaterial.setSpecularColor(Color.WHITE);
+        explosionFlash.setMaterial(flashMaterial);
+        explosionFlash.setVisible(false);
+        explosionFlash.setOpacity(0);
+
+        PhongMaterial shockMaterial = new PhongMaterial(Color.web("#ff4a2a"));
+        shockMaterial.setSpecularColor(Color.WHITE);
+        shockFlash.setMaterial(shockMaterial);
+        shockFlash.setVisible(false);
+        shockFlash.setOpacity(0);
+
+        explosionGroup.getChildren().addAll(shockFlash, explosionFlash);
     }
 
     public void update(double dt) {
@@ -112,12 +137,13 @@ public class EnemyView {
 
         if (exploding) {
             explosionTimer -= dt;
-            double progress = 1.0 - Math.max(0, explosionTimer) / 0.55;
-            double scale = 1.0 + progress * 1.5;
+            double progress = 1.0 - Math.max(0, explosionTimer) / 0.85;
+            double scale = 1.0 + progress * 2.2;
             root.setScaleX(scale);
             root.setScaleY(scale);
             root.setScaleZ(scale);
             root.setOpacity(Math.max(0, 1.0 - progress));
+            updateExplosionFlash(progress);
             updateExplosionDebris(progress);
             return;
         }
@@ -144,10 +170,20 @@ public class EnemyView {
         hitFlashTimer = 0.16;
     }
 
+    public void playDeathFlash() {
+        hitFlashTimer = 0.11;
+    }
+
+    public void setBodyVisible(boolean visible) {
+        root.setVisible(visible);
+    }
+
     public void playExplosion() {
         exploding = true;
-        explosionTimer = 0.55;
+        explosionTimer = 0.85;
         for (Node flash : flashGroup.getChildren()) flash.setVisible(true);
+        explosionFlash.setVisible(true);
+        shockFlash.setVisible(true);
         for (int i = 0; i < debrisGroup.getChildren().size(); i++) {
             Node shard = debrisGroup.getChildren().get(i);
             shard.setVisible(true);
@@ -155,15 +191,29 @@ public class EnemyView {
         }
     }
 
+    private void updateExplosionFlash(double progress) {
+        double flashScale = 0.45 + progress * 2.8;
+        explosionFlash.setScaleX(flashScale);
+        explosionFlash.setScaleY(flashScale);
+        explosionFlash.setScaleZ(flashScale);
+        explosionFlash.setOpacity(Math.max(0, 0.9 - progress * 1.35));
+
+        double shockScale = 0.75 + progress * 3.8;
+        shockFlash.setScaleX(shockScale);
+        shockFlash.setScaleY(0.18 + progress * 0.45);
+        shockFlash.setScaleZ(shockScale);
+        shockFlash.setOpacity(Math.max(0, 0.55 - progress * 0.75));
+    }
+
     private void updateExplosionDebris(double progress) {
         for (int i = 0; i < debrisGroup.getChildren().size(); i++) {
             Node shard = debrisGroup.getChildren().get(i);
             double angle = Math.PI * 2 * i / debrisGroup.getChildren().size();
-            double distance = 36 + progress * 220;
+            double distance = 42 + progress * 360;
             shard.setTranslateX(Math.cos(angle) * distance);
-            shard.setTranslateY((i % 3 - 1) * progress * 55);
+            shard.setTranslateY((i % 3 - 1) * progress * 95);
             shard.setTranslateZ(Math.sin(angle) * distance);
-            shard.setRotate(shard.getRotate() + 8);
+            shard.setRotate(shard.getRotate() + 14);
         }
     }
 

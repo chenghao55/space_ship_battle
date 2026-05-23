@@ -4,6 +4,7 @@ import com.binge.GameProject.engine.GameManager;
 import com.binge.GameProject.engine.InputManager;
 import com.binge.GameProject.physics.Hitbox;
 import com.binge.GameProject.physics.Vector2D;
+import com.binge.GameProject.utils.GameConfig;
 import javafx.scene.Group;
 import javafx.scene.input.MouseButton;
 import javafx.scene.paint.Color;
@@ -16,7 +17,7 @@ import java.util.List;
 
 // Player 是玩家操控的太空飛船，繼承自 GameObject
 public class Player extends GameObject {
-    private double thrust = 600.0; // 向前推進力 (大幅增加速度)
+    private double thrust = GameConfig.PLAYER_BASE_THRUST; // 向前推進力
     private double lateralThrust = 130.0; // 左右平移 (側滑) 的推力
     private double brakeFactor = 0.95; // 煞車力道 (每幀保留的速度比例)
 
@@ -29,6 +30,8 @@ public class Player extends GameObject {
     private boolean isOverheating = false; // 是否在危險區過熱
     private double overheatTimer = 0.0;
     private double planetCollisionCooldown = 0.0;
+    private double invincibleTimer = 0.0;
+    private boolean forwardThrustActive = false;
     private int hp = 5;
     private final int maxHp = 5;
     private double driftIntensity = 0.0;
@@ -86,6 +89,7 @@ public class Player extends GameObject {
         InputManager input = InputManager.getInstance();
         boolean canControl = gameManager != null
                 && gameManager.getCurrentState() == com.binge.GameProject.engine.GameState.PLAYING;
+        forwardThrustActive = false;
 
         // --- 0. 狀態與能量恢復 ---
         if (boostEnergy < 100.0 && !input.isPressed("Shift")) {
@@ -100,6 +104,12 @@ public class Player extends GameObject {
         }
         if (planetCollisionCooldown > 0) {
             planetCollisionCooldown -= dt;
+        }
+        if (invincibleTimer > 0) {
+            invincibleTimer -= dt;
+            if (view != null) view.setOpacity((Math.sin(invincibleTimer * 34.0) > 0) ? 0.42 : 1.0);
+        } else if (view != null && view.getOpacity() != 1.0) {
+            view.setOpacity(1.0);
         }
 
         // --- 1. 處理轉向 (A / D) ---
@@ -129,7 +139,7 @@ public class Player extends GameObject {
         double currentThrust = thrust;
         boolean isBoosting = canControl && input.isPressed("Shift") && boostEnergy > 0;
         if (isBoosting) {
-            currentThrust *= 1.66; // 約增加 66%
+            currentThrust *= GameConfig.PLAYER_BOOST_MULTIPLIER; // 約增加 66%
             boostEnergy -= 20.0 * dt; // 每秒消耗 20 點
             if (boostEnergy < 0)
                 boostEnergy = 0;
@@ -139,6 +149,7 @@ public class Player extends GameObject {
             if (input.isPressed("W") || input.isPressed("UP")) {
                 double rad = Math.toRadians(rotationAngle);
                 acceleration.addMut(new Vector2D(Math.sin(rad), Math.cos(rad)).multiply(currentThrust));
+                forwardThrustActive = true;
             }
             if (input.isPressed("S") || input.isPressed("DOWN")) {
                 velocity.multiplyMut(brakeFactor);
@@ -146,7 +157,7 @@ public class Player extends GameObject {
         }
 
         // --- 3. 機頭永遠朝向速度方向 ---
-        // 當重力彈弓等外力改變了速度方向時，機頭（與攝影機）必須瞬間跟隨切換！
+        // 當推進、碰撞或邊界回推改變速度方向時，機頭（與攝影機）必須瞬間跟隨切換！
         if (velocity.magnitudeSquared() > 1.0) {
             double oldAngle = rotationAngle;
             rotationAngle = Math.toDegrees(Math.atan2(velocity.x, velocity.y));
@@ -213,7 +224,7 @@ public class Player extends GameObject {
 
     public boolean takePlanetCollisionDamage() {
         if (planetCollisionCooldown > 0) return false;
-        takeDamage(1);
+        if (!tryTakeDamage(1)) return false;
         planetCollisionCooldown = 1.2;
         this.isOverheating = true;
         this.overheatTimer = 0.45;
@@ -222,6 +233,24 @@ public class Player extends GameObject {
 
     public boolean isBoosting() {
         return InputManager.getInstance().isPressed("Shift") && boostEnergy > 0;
+    }
+
+    public boolean isForwardThrustActive() {
+        return forwardThrustActive;
+    }
+
+    public void enforceFlightSpeedLimits() {
+        double speed = velocity.magnitude();
+        if (speed <= 0.0001) return;
+
+        if (forwardThrustActive && speed < GameConfig.PLAYER_MIN_FLIGHT_SPEED) {
+            velocity.set(velocity.normalize().multiply(GameConfig.PLAYER_MIN_FLIGHT_SPEED));
+            return;
+        }
+
+        if (speed > GameConfig.PLAYER_MAX_FLIGHT_SPEED) {
+            velocity.set(velocity.normalize().multiply(GameConfig.PLAYER_MAX_FLIGHT_SPEED));
+        }
     }
 
     public double getBoostEnergy() {
@@ -236,8 +265,19 @@ public class Player extends GameObject {
         return rotationAngle;
     }
 
-    public void takeDamage(int amount) {
+    public boolean tryTakeDamage(int amount) {
+        if (invincibleTimer > 0) return false;
         hp = Math.max(0, hp - amount);
+        invincibleTimer = GameConfig.PLAYER_INVINCIBLE_SECONDS;
+        return true;
+    }
+
+    public void takeDamage(int amount) {
+        tryTakeDamage(amount);
+    }
+
+    public boolean isInvincible() {
+        return invincibleTimer > 0;
     }
 
     public boolean isAlive() {

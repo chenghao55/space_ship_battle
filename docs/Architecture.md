@@ -1,7 +1,7 @@
 # Galactic Harmony - Architecture.md
 
 > 本文件是給開發者使用的 Class-Based 架構設計規格書。  
-> 目標：從最一開始的 `Inspiration.mdc` 與既有 `Architecture.md` 出發，不刪除原有太空漂移、引力、鏡頭、UI 架構，只新增 Galactic Harmony 的救援玩法、女團成員群集、HP 評級、永久流失、Bullet Time、雙層雷達與音效防重疊。
+> 目標：從最一開始的 `Inspiration.mdc` 與既有 `Architecture.md` 出發，保留太空漂移、行星引力、鏡頭、UI 架構，並新增 Galactic Harmony 的救援玩法、女團成員群集、HP 評級、永久流失、Ending Freeze、雙層雷達與音效防重疊。本版恢復飛船受行星引力與重力彈弓影響。
 
 ---
 
@@ -31,7 +31,7 @@ GameManager
  ↓
 PlayerShip 推力 / Boost / 甩尾
  ↓
-PhysicsEngine 行星引力 / 排斥力場 / 邊界阻力
+PhysicsEngine 行星引力 / 重力彈弓 / 星體碰撞推出 / 邊界阻力
  ↓
 RescueManager 偵測與救援 Idol
  ↓
@@ -160,7 +160,7 @@ src/
 
 ### 責任
 
-掌控遊戲整體流程、GameState、勝利與失敗條件、60 秒倒數、邊界判定整合、Bullet Time 切換。
+掌控遊戲整體流程、GameState、勝利與失敗條件、60 秒倒數、邊界判定整合、Ending Freeze 切換。
 
 ### GameState
 
@@ -170,7 +170,7 @@ enum GameState {
     STARTING_TRANSITION,
     PLAYING,
     ENDING_FREEZE,
-    BULLET_TIME,
+    BULLET_TIME, // 保留舊狀態相容；新版最後救援不再進入此狀態
     MISSION_CLEAR,
     GAME_OVER,
     PAUSED
@@ -226,17 +226,22 @@ render()
 
 - 遊戲物理與特效受 `timeScale` 影響。
 - UI 倒數與淡出可視需求使用原始 `dt` 或 `scaledDt`。
-- Bullet Time 時 `timeScale = 0.1`，持續 2.5 秒後進入結算。
+- 新版最後救援時只進入 `ENDING_FREEZE` 0.15 秒，播放 impact 後直接進結算，不再進入結算前 Bullet Time。
 
 ### 勝利與失敗條件
 
 ```text
-HP <= 0 → GAME_OVER / F
-解救人數 = 0 且時間結束 → F
+HP <= 0 → GAME_OVER / MISSION_CLEAR，評級由 ScoreManager 依成果扣分計算，不強制 F
+解救人數 = 0 且沒有擊殺或存活成果 → 通常落入 F
 救到最後一名可救援 Idol → ENDING_FREEZE
 ENDING_FREEZE 0.15 秒結束 → MISSION_CLEAR
 時間歸零 → MISSION_CLEAR
 ```
+
+### 初始玩家位置
+
+玩家出生點應位於恆星下方的安全空域，附近不可有敵方攻擊單位。  
+初始機頭朝向恆星方向，讓玩家一開始就能看到完整恆星並理解星系中心。新版起點接近偏離軌道判定範圍，但仍保持恆星完整入鏡。
 
 ---
 
@@ -244,7 +249,7 @@ ENDING_FREEZE 0.15 秒結束 → MISSION_CLEAR
 
 ### 責任
 
-控制正常時間與 Bullet Time。
+控制正常時間；`Bullet Time` 介面僅作舊流程相容，新版結算前不啟用。
 
 ```java
 class TimeScaleController {
@@ -284,6 +289,9 @@ class PlayerShip extends DynamicObject {
 
     double boostEnergy;
     boolean isBoosting;
+    boolean forwardThrustActive;
+    double minFlightSpeed; // 約等於按 W 1 秒的速度
+    double maxFlightSpeed; // 約等於最低巡航後再按 W + Boost 1 秒的速度
 
     double headingAngle;
     double visualAngle;
@@ -308,6 +316,8 @@ Space / 滑鼠左鍵 → 射擊
 飛船視覺方向：平滑朝 velocity 轉動
 大角度轉向：提高 driftIntensity
 Boost 或 driftIntensity 高：啟動尾翼殘影
+按住 W 推進時，若速度低於最低巡航速度，物理層會把速度補到最低巡航速度。
+任何狀態下若速度高於最高速度，物理層會把速度 clamp 回最高速度，避免 Boost 或重力彈弓造成無限制暴衝。
 ```
 
 ### Snake Hitbox
@@ -329,6 +339,8 @@ boolean isAlive();
 int getHp();
 double getBoostEnergy();
 double getDriftIntensity();
+boolean isForwardThrustActive();
+void enforceFlightSpeedLimits();
 ```
 
 ---
@@ -471,7 +483,7 @@ class RescueGroup {
 
 ### 責任
 
-行星 3D 視覺、女團成員管理、引力彈弓、排斥力場。
+行星 3D 視覺、女團成員管理、引力彈弓、碰撞推出、外圈公轉與敵人配置。
 
 ```java
 class Planet extends StaticObject {
@@ -495,8 +507,8 @@ class Planet extends StaticObject {
 1. 每個 Planet 對應一個女團。
 2. Planet 內部持有 `List<Idol>`。
 3. 初始化時在行星軌道或周邊星塵中生成多名 Idol。
-4. 對 PlayerShip 施加引力。
-5. 玩家貼近時施加排斥力場。
+4. 對 PlayerShip 施加引力、切線加速與重力彈弓效果。
+5. 玩家貼近時施加碰撞推出力場。
 6. 玩家靠近危險區時通知 UI 顯示警告。
 7. Bullet 撞到 Planet 時通知 CombatManager 銷毀 Bullet。
 
@@ -504,7 +516,7 @@ class Planet extends StaticObject {
 
 1. 中央恆星不公轉。
 2. 其他所有行星以中央恆星為 `orbitCenter` 慢速公轉。
-3. 初始化時，行星相對恆星的公轉半徑必須是原本生成距離的 `0.6` 倍。
+3. 初始化時，每顆行星相對恆星的公轉半徑必須比目前版本更大，且每顆行星之間要有明顯半徑差異。
 4. 每幀更新：
 
 ```text
@@ -515,13 +527,22 @@ planet.y = star.y + sin(orbitAngle) * orbitRadius
 
 5. Idol 的軌道位置以母行星最新位置為中心，因此會跟著公轉中的行星移動。
 
+### 外圈新增行星
+
+`LevelManager` 必須在既有行星外再新增 4 顆外圈行星：
+
+1. 每顆新行星半徑彼此不同，且都大於既有一般行星。
+2. 每顆新行星的公轉半徑都大於既有一般行星，且所有行星都使用差異明顯的多層軌道半徑。
+3. 顏色需與既有行星保持明顯差異，避免同色系混淆。
+4. 每顆新行星都建立一個 `IdolGroup`、多名軌道 Idol、固定 photo 表皮與多座 Enemy 守衛。
+
 ### 行星公轉避讓
 
 `LevelManager` 每幀檢查非恆星行星之間的距離：
 
 1. 若兩顆行星距離低於 `planetOrbitPauseDistance`，判斷軌道位置較後方的一顆。
 2. 後方行星呼叫 `setOrbitPaused(true)` 暫停公轉。
-3. 暫停行星仍可自轉、提供引力與碰撞。
+3. 暫停行星仍可自轉、保留碰撞與救援配置。
 4. 當距離大於 `planetOrbitResumeDistance`，呼叫 `setOrbitPaused(false)` 恢復公轉。
 5. `planetOrbitResumeDistance` 必須大於暫停距離，避免反覆抖動。
 
@@ -533,6 +554,15 @@ planet.y = star.y + sin(orbitAngle) * orbitRadius
 4. 行星碰撞扣血需要短暫冷卻，避免單次接觸造成多次連續扣血。
 5. `Bullet` 必須跳過行星 / 恆星引力與排斥力計算。
 6. `PhysicsEngine` 必須使用 bullet path segment vs planet/star circle 的掃描碰撞，避免高速子彈穿透或被 `dangerRadius` 彈開。
+
+### 重力彈弓飛行規則
+
+1. `PhysicsEngine` 需要把行星與恆星的質量轉成飛船加速度。
+2. 需要計算並套用與玩家速度方向一致的切線重力彈弓加速。
+3. 飛船速度來自玩家推進、Boost、慣性、星體引力、阻力與邊界回推。
+4. 行星碰撞推出仍保留：飛船進入星體碰撞圈時扣 HP，並被推回安全半徑。
+5. 子彈仍維持直線飛行，撞行星或恆星立即消失。
+6. 本版大幅降低重力彈弓引力和切線加速度，保留輕微牽引感，不可強吸或暴衝。
 
 ---
 
@@ -546,6 +576,12 @@ class Enemy extends StaticObject {
     double aggroRadius;
     double shootCooldown;
     boolean alive;
+    boolean mobile;
+    boolean isDestroyed;
+    boolean isDying;
+
+    void destroy();
+    void onDeathExplosionFinished();
 }
 ```
 
@@ -559,6 +595,15 @@ class Enemy extends StaticObject {
 6. 敵人使用預判射擊，但攻擊頻率不可過高。
 7. 預判射擊可保留少量誤差，但不可再只朝玩家當前座標慢速發射。
 8. 本版調整：`aggroRadius` 縮小，`shootCooldown` 比上一版增加 1 秒，降低壓迫感。
+9. 砲台敵人數量調整為目前配置的 3/4；展示版每顆行星 3 座砲台。
+10. 新增移動型敵人，使用和砲台相同的 HP、預判射擊、受擊與爆炸邏輯。
+11. 移動型敵人的核心為綠色，定位為快速攔截單位。
+12. 移動型敵人的偵測 / 攻擊半徑為上一版移動型敵人的 3 倍；進入範圍後快速飛向玩家目前視角 / 機頭方向前方的攔截點。
+13. 移動型敵人靠近玩家後維持 `preferredDistanceFromPlayer` 的前方壓迫距離，不直接貼臉；若玩家轉向或拉開距離會重新追蹤新的前方攔截點。
+14. 移動型敵人射擊頻率為前一版移動型敵人的 1.5 倍，等價於射擊冷卻除以 1.5。
+15. 移動型敵人數量為前一版的 4 倍，LevelManager 必須分散擺放到不同星球外側與不同角度。
+14. 敵人位置必須大幅散開，不可在每顆行星旁密集擠成小團。
+15. HP <= 0 後立刻關閉射擊、碰撞與被攻擊判定，但保留死亡爆炸特效直到播放完畢。
 
 ### EnemyView
 
@@ -573,7 +618,30 @@ Enemy 不使用外部 OBJ。
 4. 不顯示警戒範圍或 Aggro Zone 視覺提示。
 5. 射擊前核心短暫變亮，射擊瞬間砲口 flash。
 6. 被玩家子彈擊中時模型短暫閃紅或閃白。
-7. HP 歸零時播放簡單爆炸效果，包含核心放大淡出、砲塔碎片外散、短暫 flash，再標記移除。
+7. HP 歸零時播放明顯爆炸效果，包含高亮爆炸 flash、核心放大淡出、砲塔碎片外散、短暫 shock flash，再標記移除；死亡 flash 半徑必須比目前版本大 5 倍。
+
+### EnemyDeathExplosion
+
+在 `rendering` package 新增 `EnemyDeathExplosion`：
+
+```java
+public class EnemyDeathExplosion {
+    public EnemyDeathExplosion(Vector2D position);
+    public void update(double dt);
+    public boolean isFinished();
+    public Group getView();
+}
+```
+
+流程：
+
+1. 死亡瞬間先讓敵人模型閃白或閃紅約 0.08~0.12 秒。
+2. 主爆炸 flash 快速擴張並淡出，時間約 0.25~0.4 秒。
+3. 震波環平行於 X/Z 遊戲平面向外擴散。
+4. 生成 8~16 個碎片，隨機速度、旋轉與生命時間，0.5~1.0 秒後淡出或縮小。
+5. 主爆炸後 0.1~0.2 秒觸發 2~3 個小型二次爆光。
+6. 爆炸開始呼叫 `AudioSystem.playSfx("enemy_destroy")`；二次爆炸可呼叫 `AudioSystem.playSfx("explosion_small")`。
+7. 若音效檔不存在，`AudioSystem.playSfx` 不可丟出例外。
 
 ---
 
@@ -611,7 +679,7 @@ enum BulletOwner {
 
 ### 責任
 
-判斷任務流程、勝利、失敗、進入 Bullet Time 與結算。
+判斷任務流程、勝利、失敗、結束停格與結算。
 
 ```java
 class MissionManager {
@@ -619,7 +687,7 @@ class MissionManager {
     boolean finalRescueTriggered;
 
     void update(double dt);
-    boolean shouldStartBulletTime();
+    boolean shouldStartEndingFreeze();
     boolean shouldEndMission();
 }
 ```
@@ -629,7 +697,7 @@ class MissionManager {
 ```text
 所有未流失 Idol 都已 RESCUED
 且 HP > 0
-→ 觸發 Bullet Time
+→ 觸發 ENDING_FREEZE 0.15 秒
 ```
 
 如果時間歸零，直接結算。
@@ -640,29 +708,31 @@ class MissionManager {
 
 ### 責任
 
-依照救援比例與 HP 計算評級。
+依照救援比例、仍存活在隊伍上的救援單位、擊敗敵人數量與 HP 計算總分與評級。
 
 ```java
 class ScoreResult {
+    int totalRescueTargetCount;
     int rescuedCount;
-    int totalCount;
-    int lostCount;
-    int remainingHp;
-    double rescuedRatio;
+    int lostRescueCount;
+    int aliveRescuedCount;
+    int enemyKillCount;
+    int playerHp;
+    double rescueRate;
+    double totalScore;
     String rating;
 }
 ```
 
 ### 評級邏輯
 
-```java
-if (remainingHp <= 0 || rescuedCount == 0) rating = "F";
-else if (rescuedRatio == 1.0 && remainingHp == 5) rating = "S";
-else if ((rescuedRatio == 1.0 && remainingHp >= 3) ||
-         (rescuedRatio >= 0.8 && remainingHp >= 4)) rating = "A";
-else if ((rescuedRatio >= 0.8 && remainingHp >= 1) ||
-         (rescuedRatio >= 0.5 && remainingHp >= 3)) rating = "B";
-else rating = "C";
+```text
+rescueScore = rescueRate * 60
+aliveScore = min(aliveRescuedCount * 5, 25)
+killScore = min(enemyKillCount * 3, 15)
+hpPenalty = 20 if playerHp <= 0, 8 if playerHp == 1, 4 if playerHp == 2, else 0
+totalScore = clamp(rescueScore + aliveScore + killScore - hpPenalty, 0, 100)
+S = 95-100, A = 80-94, B = 60-79, C = 20-59, F = 0-19
 ```
 
 注意：
@@ -670,6 +740,9 @@ else rating = "C";
 - `totalCount` 是全地圖原始 Idol 總數。
 - `lostCount` 是被永久流失的 Idol 數。
 - 即使 Idol 流失，分母仍以原始總數計算，代表評級會下降。
+- `rescuedCount` 表示曾經救援成功的總數，包含後來流失者。
+- `aliveRescuedCount` 表示結算瞬間仍在隊伍上的救援單位。
+- `enemyKillCount` 由 CombatManager 在敵人死亡爆炸觸發時累加。
 
 ---
 
@@ -768,8 +841,8 @@ MainMenuUI
 6. 外圈 Idol 脈衝雷達。
 7. 聲波視覺化。
 8. 警告提示。
-9. Bullet Time 與淡出。
-10. 結算真實資料：救援人數、流失人數、剩餘 HP、評級。
+9. Ending Freeze 與淡出。
+10. 結算真實資料：救援人數、救援比例、存活救援數、流失人數、擊殺數、剩餘 HP、總分、評級。
 
 ### ResultSequenceManager
 
@@ -783,10 +856,13 @@ void start(ScoreResult scoreResult);
 
 1. Result Screen 不使用假資料，只讀取 `ScoreResult`。
 2. 數字依序跳動顯示：
-   - `rescuedCount / totalCount`
-   - `lostCount`
-   - `remainingHp`
-   - `rescuedRatio`
+   - `rescuedCount / totalRescueTargetCount`
+   - `rescueRate`
+   - `aliveRescuedCount`
+   - `lostRescueCount`
+   - `enemyKillCount`
+   - `playerHp`
+   - `totalScore`
 3. 數字跳動時播放 tick 音效，但限制每 0.04~0.08 秒一次。
 4. 所有數字跳完後延遲 0.3 秒顯示 Rating。
 5. Rating 依 F / C / B / A / S 播放不同強度 reveal 音效。
@@ -885,7 +961,7 @@ volume = 1.0 - distance / radarSenseRange
 |---|---|
 | 敵方據點與摧毀核心 | 改為女團成員救援 |
 | 據點訊號追蹤 | 改為 Idol 歌聲 + 外圈脈衝雷達 |
-| 據點爆炸結算 | 改為最後救援 Bullet Time + 結算 |
+| 據點爆炸結算 | 改為最後救援停格 + 真實資料結算 |
 | 單一目標 | 改為多星球、多女團、多成員 |
 | 戰鬥主軸 | 改為救援主軸，敵人是干擾 |
 | 得分重點 | 改為救援比例 + HP |
@@ -894,7 +970,7 @@ volume = 1.0 - distance / radarSenseRange
 
 | 原架構位置 | 新增內容 |
 |---|---|
-| `GameManager` | 60 秒倒數、HP 失敗、Bullet Time |
+| `GameManager` | 60 秒倒數、HP 失敗、Ending Freeze |
 | `PlayerShip` | 5 顆心、Snake Hitbox、隊伍受擊 |
 | `Planet` | `List<Idol>`、女團節點管理 |
 | `GameObject` 繼承樹 | `Idol`, `IdolGroup`, `RescueGroup`, `Bullet` |
@@ -902,7 +978,7 @@ volume = 1.0 - distance / radarSenseRange
 | `SignalManager` / `RadarSystem` | 雙層雷達 |
 | `HUDManager` | HP、進度、頭像、聲波、結算 |
 | 新增 `AudioSystem` | Ambient、K-Pop、Echo Bug 修正 |
-| 新增 `ScoreManager` | 救援比例 + HP 評級 |
+| 新增 `ScoreManager` | 救援比例 + 存活救援數 + 擊殺數 + HP 的總分評級 |
 
 ---
 
@@ -945,19 +1021,19 @@ utils/GameConfig.java
 
 ### 從 Inspiration.mdc 要改的部分
 
-1. 保留太空漂移、引力彈弓、Boost。
+1. 保留太空漂移、行星引力、重力彈弓與 Boost。
 2. 把玩家目標從打據點改成救援 Idol。
 3. 加入地圖固定邊界與脫離航道阻力。
 4. 保留第三人稱物理移動需求，並支援 Snake Hitbox。
 
 ### 從 Architecture.md 要改的部分
 
-1. `GameState` 新增 `BULLET_TIME`、`GAME_OVER`。
+1. `GameState` 新增 `ENDING_FREEZE`、`GAME_OVER`，`BULLET_TIME` 僅保留舊流程相容。
 2. `GameManager` 新增 60 秒倒數與勝敗流程。
 3. `PlayerShip` 新增 HP = 5、Boost、driftIntensity。
 4. `PhysicsEngine` 支援 Player + RescueGroup 的多段 Hitbox。
 5. `BoundarySystem` 顯示脫離航道警告並給阻力。
-6. `TimeScaleController` 支援 0.1 倍 Bullet Time。
+6. `TimeScaleController` 可保留舊介面，但新版結算前不啟用 Bullet Time。
 
 ### A 的具體任務
 
@@ -1000,17 +1076,17 @@ utils/GameConfig.java
 
 #### A-5 行星與邊界
 
-- 實作行星引力。
+- 實作行星引力與重力彈弓加速。
 - 實作排斥力場。
-- 實作非恆星行星慢速公轉，且公轉半徑縮為目前生成半徑的 0.6 倍。
+- 實作非恆星行星慢速公轉，且每顆公轉半徑都比目前版本更大並有明顯差異。
 - 實作子彈撞行星的碰撞查詢接口。
 - 實作 `BoundarySystem`。
 
-#### A-6 Bullet Time
+#### A-6 Ending Freeze
 
 - 建立 `TimeScaleController`。
-- 最後救援時將 `timeScale` 設為 0.1。
-- 持續 2.5 秒後通知 `GameManager` 切換到結算。
+- 最後救援時進入 `ENDING_FREEZE` 0.15 秒。
+- 停格結束後通知 `GameManager` 切換到結算。
 
 ### A 需要提供給 B / C 的接口
 
@@ -1073,12 +1149,17 @@ model/PlayerBullet.java
 #### B-1 LevelManager
 
 - 生成多顆行星。
+- 新增 4 顆外圈行星；它們半徑彼此不同、都比既有一般行星大，公轉軌道半徑也都大於既有行星。
+- 所有行星初始角度必須盡量均勻分散環繞恆星，避免隨機靠太近或集中在同一側。
 - 每顆行星建立一個 `IdolGroup`。
 - 每個 `IdolGroup` 生成多名環繞行星的 `Idol`，不得把 Idol 放在行星內部。
 - 同一個 `IdolGroup` 生成的所有 Idol 使用同一張 `photo` 貼圖。
 - 展示版所有 `IdolGroup` 的音樂先固定為 `/pop_musics/supernova.mp3`，音量依雷達脈衝強度等比調整。
 - 生成靜態射擊型敵人。
-- 敵方單位數量必須大幅增加，展示版以每顆行星至少 4 座靜態衛星砲塔作為基準，形成可讀但有壓力的防線。
+- 靜態砲台數量為每顆行星 3 座，等於前一版每顆 4 座配置的 3/4。
+- 生成多個分散擺放的移動型敵人，作為追蹤壓力來源；本版數量為前一版配置的 4 倍。
+- 移動型敵人數量為前一版的 4 倍，使用不同星球、不同角度與不同外側距離分散擺放。
+- 所有敵人的初始位置需要大幅散開，使用更寬的角度與距離階梯。
 - 記錄全地圖原始 Idol 總數。
 
 #### B-2 Idol 狀態機
@@ -1143,7 +1224,7 @@ LOST
 #### B-7 MissionManager
 
 - 判斷是否所有未流失 / 全部目標完成。
-- 若最後一名可救援 Idol 被救到，通知 `GameManager` 進入 `BULLET_TIME`。
+- 若最後一名可救援 Idol 被救到，通知 `GameManager` 進入 `ENDING_FREEZE`。
 - 時間歸零或 HP 歸零時進入結算 / 失敗。
 
 #### B-8 ScoreManager
@@ -1152,20 +1233,22 @@ LOST
   - 原始 Idol 總數
   - 已救援人數
   - LOST 人數
+  - 仍存活在隊伍上的救援人數
+  - 擊敗敵人數
   - 剩餘 HP
   - 救援比例
+  - totalScore
   - Rating
 
 評級規則：
 
-```java
-if (hp <= 0 || rescuedCount == 0) rating = "F";
-else if (rescuedRatio == 1.0 && hp == 5) rating = "S";
-else if ((rescuedRatio == 1.0 && hp >= 3) ||
-         (rescuedRatio >= 0.8 && hp >= 4)) rating = "A";
-else if ((rescuedRatio >= 0.8 && hp >= 1) ||
-         (rescuedRatio >= 0.5 && hp >= 3)) rating = "B";
-else rating = "C";
+```text
+rescueScore = rescueRate * 60
+aliveScore = min(aliveRescuedCount * 5, 25)
+killScore = min(enemyKillCount * 3, 15)
+hpPenalty = 20 if playerHp <= 0, 8 if playerHp == 1, 4 if playerHp == 2, else 0
+totalScore = clamp(rescueScore + aliveScore + killScore - hpPenalty, 0, 100)
+S = 95-100, A = 80-94, B = 60-79, C = 20-59, F = 0-19
 ```
 
 ### B 需要提供給 A / C 的接口
@@ -1232,7 +1315,7 @@ utils/ResourceManager.java
 ### 從 Inspiration.mdc 要改的部分
 
 1. 原本雷達追蹤據點，改成內圈危險 + 外圈 Idol 探測。
-2. 原本任務完成爆炸，改成最後救援 Bullet Time + 淡出。
+2. 原本任務完成爆炸，改成最後救援停格 + 淡出。
 3. 保留 Boost、漂移、行星危險、鏡頭震動等回饋。
 4. 加入 K-Pop 歌聲、聲波 UI、Idol 頭像。
 
@@ -1241,7 +1324,7 @@ utils/ResourceManager.java
 1. `HUDManager` 新增 HP、Progress、IdolPortrait、SoundWave。
 2. `SignalManager` 或 `RadarSystem` 改為雙層雷達。
 3. 新增 `AudioSystem`, `MusicMixer`, `IdolVoiceController`。
-4. `CameraManager` 支援 Bullet Time 視覺與受擊震動。
+4. `CameraManager` 支援結束停格、淡出與受擊震動。
 5. `ParticleRenderer` 新增尾翼、火花、救援、流失星塵。
 
 ### C 的具體任務
@@ -1333,8 +1416,7 @@ utils/ResourceManager.java
 - Enemy 消滅爆炸。
 - Idol 救援特效。
 - Idol LOST 星塵流失。
-- Bullet Time 慢動作視覺。
-- 2.5 秒後淡出到結算。
+- 停格後淡出到結算。
 
 ### C 需要提供給 A / B 的接口
 
@@ -1343,7 +1425,7 @@ void showWarning(String text);
 void showIdolRescued(Idol idol);
 void showIdolLost(Idol idol);
 void playHitShake();
-void playBulletTimeEffect();
+void playEndingFreezeEffect();
 void playRescueEffect(Idol idol);
 void playSpark(Vector2D position);
 void playEnemyExplosion(Vector2D position);
@@ -1417,7 +1499,7 @@ feature/c-result-ui-effects
 
 ### Phase 5：結算與展示打磨
 
-- A：完成 Bullet Time。
+- A：完成 Ending Freeze。
 - B：完成 ScoreManager 與 ScoreResult。
 - C：完成 MissionResultUI、FadeTransition、尾翼、火花、星塵。
 
@@ -1442,4 +1524,4 @@ feature/c-result-ui-effects
 13. 子彈撞行星消失。
 14. 雙層雷達。
 15. 真實資料結算評級。
-16. 最後救援 Bullet Time。
+16. 最後救援停格後直接結算。

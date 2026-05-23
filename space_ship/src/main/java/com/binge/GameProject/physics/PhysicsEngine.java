@@ -7,11 +7,11 @@ import com.binge.GameProject.model.Player;
 
 import java.util.List;
 
-// PhysicsEngine 負責計算遊戲中所有的引力與移動
+// PhysicsEngine 負責計算遊戲中所有的引力彈弓、星體碰撞與子彈飛行
 public class PhysicsEngine {
     // 引力常數：數字越大，星球的吸力就越強 (可以隨時調整來改變遊戲手感)
-    public static final double GRAVITATIONAL_CONSTANT = 2500.0; // 引力大幅調小
-    
+    public static final double GRAVITATIONAL_CONSTANT = 650.0;
+
     // 宇宙阻力 (摩擦力)：因為太空是真空的，所以我們設定一個非常接近 1 的數字
     // 0.995 代表每幀會保留 99.5% 的速度，讓飛船能有「慢慢滑行、很難剎車」的漂移感
     public static final double DRAG = 0.995; 
@@ -29,7 +29,7 @@ public class PhysicsEngine {
             
             // 用來收集「所有星球」加總起來的引力總和
             Vector2D totalGravity = new Vector2D(0, 0);
-            
+
             // 檢查每一個靜止的物體 (例如星球)
             for (GameObject staticObj : staticObjects) {
                 // 如果這個靜止物體是一顆星球
@@ -44,39 +44,30 @@ public class PhysicsEngine {
 
                     // 設定一個危險邊界距離 (力場半徑縮小為現在的一半，也就是星球半徑 + 50)
                     double dangerRadius = p.getRadius() + 50;
-                    
-                    // 為了引力方向正確，我們需要「朝向星球」的向量 (也就是 -diff.normalize())
-                    Vector2D dirToPlanet = diff.normalize().multiply(-1);
-                    
+
                     // 1. 分層引力區塊：計算引力與極限封頂 (Clamp Max Gravity)
+                    Vector2D dirToPlanet = diff.normalize().multiply(-1);
                     double calcDist = Math.max(dist, dangerRadius);
                     double force = (GRAVITATIONAL_CONSTANT * p.getMass()) / (calcDist * calcDist);
-                    
+
                     // 封頂最大引力，確保玩家永遠可以用 Boost 逃脫
-                    double maxForce = 150.0; // 根據手感調整 (減半)
+                    double maxForce = 42.0;
                     if (force > maxForce) force = maxForce;
-                    
-                    // (a) 傳統向心引力
+
                     Vector2D gravityAccel = dirToPlanet.multiply(force);
                     totalGravity.addMut(gravityAccel);
-                    
-                    // (b) 街機風重力彈弓效應 (Arcade Gravity Slingshot)
-                    // 計算垂直於質心連線的切線向量
+
+                    // 2. 街機風重力彈弓效應：沿著飛船速度方向一致的切線提供加速。
                     Vector2D tangent = new Vector2D(-dirToPlanet.y, dirToPlanet.x);
-                    
-                    // 確保切線向量的方向與飛船當前速度方向大致相同 (內積 > 0)
                     if (tangent.dot(obj.getVelocity()) < 0) {
                         tangent = tangent.multiply(-1);
                     }
-                    
-                    // 當飛船處於移動狀態時，給予與引力量質成正比的固定切線速度加成
                     if (obj.getVelocity().magnitudeSquared() > 1.0) {
-                        double slingshotFactor = 1.5; // 切線加速倍率
-                        Vector2D slingshotAccel = tangent.multiply(force * slingshotFactor);
-                        totalGravity.addMut(slingshotAccel);
+                        double slingshotFactor = 0.35;
+                        totalGravity.addMut(tangent.multiply(force * slingshotFactor));
                     }
-                    
-                    // 2. 危險掠過區 (Danger Zone) 或 排斥力場 (Repulsive Force Field)
+
+                    // 3. 星體碰撞推出與扣血。
                     if (dist < dangerRadius) {
                         // 強制把飛船的位置拉回 dangerRadius 的邊界，這樣飛船就「絕對無法再靠近」
                         Vector2D dirFromPlanet = diff.normalize();
@@ -103,12 +94,16 @@ public class PhysicsEngine {
 
             // 將所有星球的總引力，加到飛船的加速度上 (飛船自己的引擎推力已經先加在 acceleration 裡面了)
             obj.getAcceleration().addMut(totalGravity);
-            
+
             // 根據國中物理：速度 = 原速度 + 加速度 * 時間 (v = v0 + a * dt)
             obj.getVelocity().addMut(obj.getAcceleration().multiply(dt));
             
             // 模擬宇宙漂移的些微阻力，讓飛船不會無限加速到飛出宇宙
             obj.getVelocity().multiplyMut(DRAG); 
+
+            if (obj instanceof Player player) {
+                player.enforceFlightSpeedLimits();
+            }
             
             // 根據國中物理：位置 = 原位置 + 速度 * 時間 (p = p0 + v * dt)
             obj.getPosition().addMut(obj.getVelocity().multiply(dt));

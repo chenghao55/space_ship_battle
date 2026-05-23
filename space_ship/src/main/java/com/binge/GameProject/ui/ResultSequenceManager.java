@@ -33,7 +33,7 @@ public class ResultSequenceManager {
     }
 
     private void animateRow(ScoreResult result, int index) {
-        if (index >= 4) {
+        if (index >= 7) {
             PauseTransition pause = new PauseTransition(Duration.seconds(0.3));
             pause.setOnFinished(e -> revealRating(result.getRating()));
             pause.play();
@@ -75,26 +75,33 @@ public class ResultSequenceManager {
     private String labelFor(int index) {
         return switch (index) {
             case 0 -> "RESCUED:";
-            case 1 -> "LOST:";
-            case 2 -> "HP LEFT:";
-            default -> "RESCUE RATE:";
+            case 1 -> "RESCUE RATE:";
+            case 2 -> "ALIVE TEAM:";
+            case 3 -> "LOST:";
+            case 4 -> "ENEMY KILLS:";
+            case 5 -> "HP LEFT:";
+            default -> "TOTAL SCORE:";
         };
     }
 
     private double targetFor(ScoreResult result, int index) {
         return switch (index) {
             case 0 -> result.getRescuedCount();
-            case 1 -> result.getLostCount();
-            case 2 -> result.getRemainingHp();
-            default -> result.getRescuedRatio() * 100.0;
+            case 1 -> result.getRescueRate() * 100.0;
+            case 2 -> result.getAliveRescuedCount();
+            case 3 -> result.getLostRescueCount();
+            case 4 -> result.getEnemyKillCount();
+            case 5 -> result.getPlayerHp();
+            default -> result.getTotalScore();
         };
     }
 
     private String formatValue(ScoreResult result, int index, double value) {
         return switch (index) {
-            case 0 -> String.format("%d / %d", Math.round(value), result.getTotalCount());
-            case 1, 2 -> String.valueOf(Math.round(value));
-            default -> String.format("%d%%", Math.round(value));
+            case 0 -> String.format("%d / %d", Math.round(value), result.getTotalRescueTargetCount());
+            case 1 -> String.format("%d%%", Math.round(value));
+            case 6 -> String.format("%d / 100", Math.round(value));
+            default -> String.valueOf(Math.round(value));
         };
     }
 

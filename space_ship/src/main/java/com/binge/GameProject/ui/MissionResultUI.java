@@ -118,7 +118,7 @@ public class MissionResultUI {
     }
 
     public void updateResult(ScoreResult result) {
-        subTitle.setText(result.getRemainingHp() <= 0 ? "MISSION FAILED // SHIP LOST" : "GALACTIC HARMONY RESCUE REPORT");
+        subTitle.setText(result.getPlayerHp() <= 0 ? "SHIP LOST // RESULTS RECOVERED" : "GALACTIC HARMONY RESCUE REPORT");
         resultSequenceManager.start(result);
     }
 

@@ -3,7 +3,9 @@ package com.binge.GameProject.gameplay;
 import com.binge.GameProject.model.Enemy;
 import com.binge.GameProject.model.Idol;
 import com.binge.GameProject.model.IdolGroup;
+import com.binge.GameProject.model.MobileEnemy;
 import com.binge.GameProject.model.Planet;
+import com.binge.GameProject.utils.GameConfig;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
@@ -16,9 +18,14 @@ public class LevelManager {
     private static final double PLANET_ORBIT_RADIUS_SCALE = 0.6;
     private static final double PLANET_ORBIT_PAUSE_DISTANCE = 3600.0;
     private static final double PLANET_ORBIT_RESUME_DISTANCE = 4300.0;
-    private static final int ENEMIES_PER_PLANET = 4;
-    private static final double ENEMY_CLUSTER_BASE_DISTANCE = 1250.0;
-    private static final double ENEMY_CLUSTER_DISTANCE_STEP = 230.0;
+    private static final int ENEMIES_PER_PLANET = 3;
+    private static final int MOBILE_ENEMY_COUNT = GameConfig.MOVING_ENEMY_COUNT;
+    private static final double ENEMY_CLUSTER_BASE_DISTANCE = 2600.0;
+    private static final double ENEMY_CLUSTER_DISTANCE_STEP = 900.0;
+    private static final String DEMO_SONG_PATH = "/pop_musics/supernova.mp3";
+    private static final double PLAYER_SAFE_START_X = GameConfig.PLAYER_START_X;
+    private static final double PLAYER_SAFE_START_Y = GameConfig.PLAYER_START_Y;
+    private static final double PLAYER_SAFE_ENEMY_RADIUS = 2300.0;
     private final List<Planet> planets = new ArrayList<>();
     private final List<IdolGroup> idolGroups = new ArrayList<>();
     private final List<Idol> idols = new ArrayList<>();
@@ -35,89 +42,90 @@ public class LevelManager {
         addPlanet(sun, consumer);
 
         java.util.Random rand = new java.util.Random();
-        double[][] coords = new double[3][2];
-        boolean configOk = false;
-        int configAttempts = 0;
+        double[][] positions = createEvenlyDistributedPlanetPositions();
 
-        while (!configOk && configAttempts < 5000) {
-            configAttempts++;
-            // 隨機產生 3 個點
-            for (int i = 0; i < 3; i++) {
-                coords[i][0] = -8500.0 + rand.nextDouble() * 17000.0;
-                coords[i][1] = -8500.0 + rand.nextDouble() * 17000.0;
-            }
-
-            // 檢查是否皆距離太陽 >= 4000.0
-            boolean sunDistOk = true;
-            for (int i = 0; i < 3; i++) {
-                double d = Math.sqrt(coords[i][0] * coords[i][0] + coords[i][1] * coords[i][1]);
-                if (d < 4000.0) {
-                    sunDistOk = false;
-                    break;
-                }
-            }
-            if (!sunDistOk) continue;
-
-            // 計算兩兩之間的距離
-            double d01 = Math.sqrt(Math.pow(coords[0][0] - coords[1][0], 2) + Math.pow(coords[0][1] - coords[1][1], 2));
-            double d02 = Math.sqrt(Math.pow(coords[0][0] - coords[2][0], 2) + Math.pow(coords[0][1] - coords[2][1], 2));
-            double d12 = Math.sqrt(Math.pow(coords[1][0] - coords[2][0], 2) + Math.pow(coords[1][1] - coords[2][1], 2));
-
-            double minDist = Math.min(d01, Math.min(d02, d12));
-
-            // 距離限制：兩兩之間最少 6750.0 距離，且最近的兩個行星距離在 6750 到 8500 之間
-            if (minDist >= 6750.0 && minDist <= 8500.0) {
-                configOk = true;
-            }
-        }
-
-        // 防呆回退預設值
-        if (!configOk) {
-            coords[0][0] = 5000; coords[0][1] = 0;
-            coords[1][0] = -2000; coords[1][1] = 5000;
-            coords[2][0] = -3000; coords[2][1] = -3000;
-        }
-        scalePlanetOrbitRadii(coords, PLANET_ORBIT_RADIUS_SCALE);
-
-        Planet aurora = new Planet(coords[0][0], coords[0][1], 267, 500000, Color.web("#3ec7ff"));
-        Planet neon = new Planet(coords[1][0], coords[1][1], 210, 300000, Color.web("#ff4f9a"));
-        Planet lunar = new Planet(coords[2][0], coords[2][1], 160, 120000, Color.web("#d8d8e8"));
+        Planet aurora = new Planet(positions[0][0], positions[0][1], 267, 500000, Color.web("#3ec7ff"));
+        Planet neon = new Planet(positions[1][0], positions[1][1], 210, 300000, Color.web("#ff4f9a"));
+        Planet lunar = new Planet(positions[2][0], positions[2][1], 160, 120000, Color.web("#d8d8e8"));
+        Planet verdant = new Planet(positions[3][0], positions[3][1], 320, 520000, Color.web("#2ee66b"));
+        Planet violet = new Planet(positions[4][0], positions[4][1], 360, 560000, Color.web("#8f5cff"));
+        Planet ember = new Planet(positions[5][0], positions[5][1], 410, 610000, Color.web("#f2552c"));
+        Planet cobalt = new Planet(positions[6][0], positions[6][1], 470, 680000, Color.web("#3b5bff"));
         aurora.enableOrbitAround(sun, 0.70);
         neon.enableOrbitAround(sun, -0.52);
         lunar.enableOrbitAround(sun, 0.43);
+        verdant.enableOrbitAround(sun, -0.26);
+        violet.enableOrbitAround(sun, 0.22);
+        ember.enableOrbitAround(sun, -0.18);
+        cobalt.enableOrbitAround(sun, 0.15);
+
+        List<Planet> guardedPlanets = new ArrayList<>();
 
         addPlanet(aurora, consumer);
         addPlanet(neon, consumer);
         addPlanet(lunar, consumer);
+        addPlanet(verdant, consumer);
+        addPlanet(violet, consumer);
+        addPlanet(ember, consumer);
+        addPlanet(cobalt, consumer);
+        guardedPlanets.add(aurora);
+        guardedPlanets.add(neon);
+        guardedPlanets.add(lunar);
+        guardedPlanets.add(verdant);
+        guardedPlanets.add(violet);
+        guardedPlanets.add(ember);
+        guardedPlanets.add(cobalt);
 
         createGroup("AURORA", "aurora-hook", aurora, Color.web("#54f4ff"),
                 new String[]{"Mina", "Sora", "Lumi"},
                 new double[][]{{380, 42, 11}, {470, 156, -8}, {560, 285, 6}},
-                "/photo/a.jpg", "/pop_musics/supernova.mp3", consumer);
+                "/photo/a.jpg", DEMO_SONG_PATH, consumer);
         createGroup("NEON", "neon-chorus", neon, Color.web("#ff72bb"),
                 new String[]{"Rin", "Nana", "Yuki"},
                 new double[][]{{330, 22, -10}, {420, 135, 7}, {510, 264, -5}},
-                "/photo/b.jpg", "/pop_musics/supernova.mp3", consumer);
+                "/photo/b.jpg", DEMO_SONG_PATH, consumer);
         createGroup("LUNAR", "lunar-bridge", lunar, Color.web("#d7ff7a"),
                 new String[]{"Hana", "Mei"},
                 new double[][]{{280, 65, 9}, {360, 236, -7}},
-                "/photo/c.jpg", "/pop_musics/supernova.mp3", consumer);
+                "/photo/c.jpg", DEMO_SONG_PATH, consumer);
+        createGroup("VERDANT", "verdant-rise", verdant, Color.web("#7dff96"),
+                new String[]{"Aki", "Nori"},
+                new double[][]{{520, 18, 5}, {650, 205, -4}},
+                "/photo/d.jpg", DEMO_SONG_PATH, consumer);
+        createGroup("VIOLET", "violet-wave", violet, Color.web("#c7a6ff"),
+                new String[]{"Rika", "Ena"},
+                new double[][]{{560, 76, -5}, {700, 248, 4}},
+                "/photo/e.jpg", DEMO_SONG_PATH, consumer);
+        createGroup("EMBER", "ember-spark", ember, Color.web("#ff9b6b"),
+                new String[]{"Kira", "Noa"},
+                new double[][]{{610, 116, 4}, {760, 302, -4}},
+                "/photo/a.jpg", DEMO_SONG_PATH, consumer);
+        createGroup("COBALT", "cobalt-drift", cobalt, Color.web("#8fb4ff"),
+                new String[]{"Mio", "Rei"},
+                new double[][]{{690, 34, -3}, {830, 221, 3}},
+                "/photo/b.jpg", DEMO_SONG_PATH, consumer);
 
-        // 為每顆行星建立多座外側衛星砲塔，讓救援路線穿過更密集的防線。
-        for (int i = 0; i < 3; i++) {
-            addEnemyClusterAroundPlanet(coords[i][0], coords[i][1], rand, consumer);
+        // 為每顆非恆星行星建立多座外側衛星砲塔，讓救援路線穿過更密集的防線。
+        for (Planet planet : guardedPlanets) {
+            addEnemyClusterAroundPlanet(planet.getPosition().x, planet.getPosition().y, rand, consumer);
         }
+        addMobileEnemies(guardedPlanets, consumer);
     }
 
     private void addEnemyClusterAroundPlanet(double planetX, double planetY, java.util.Random rand, ObjectConsumer consumer) {
         double outwardAngle = Math.atan2(planetY, planetX);
-        double[] fanOffsets = {-72.0, -24.0, 24.0, 72.0};
+        double[] fanOffsets = {-140.0, 0.0, 140.0};
 
         for (int i = 0; i < ENEMIES_PER_PLANET; i++) {
             double angle = outwardAngle + Math.toRadians(fanOffsets[i]) + Math.toRadians(rand.nextDouble() * 12.0 - 6.0);
             double enemyDist = ENEMY_CLUSTER_BASE_DISTANCE + ENEMY_CLUSTER_DISTANCE_STEP * i + rand.nextDouble() * 90.0;
             double ex = planetX + Math.cos(angle) * enemyDist;
             double ey = planetY + Math.sin(angle) * enemyDist;
+            if (distance(ex, ey, PLAYER_SAFE_START_X, PLAYER_SAFE_START_Y) < PLAYER_SAFE_ENEMY_RADIUS) {
+                angle = outwardAngle + Math.PI + Math.toRadians(fanOffsets[i] * 0.35);
+                ex = planetX + Math.cos(angle) * enemyDist;
+                ey = planetY + Math.sin(angle) * enemyDist;
+            }
             addEnemy(new Enemy(ex, ey), consumer);
         }
     }
@@ -130,6 +138,25 @@ public class LevelManager {
     private void addEnemy(Enemy enemy, ObjectConsumer consumer) {
         enemies.add(enemy);
         consumer.add(enemy);
+    }
+
+    private void addMobileEnemies(List<Planet> guardedPlanets, ObjectConsumer consumer) {
+        for (int added = 0; added < MOBILE_ENEMY_COUNT; added++) {
+            Planet planet = guardedPlanets.get(added % guardedPlanets.size());
+            double outwardAngle = Math.atan2(planet.getPosition().y, planet.getPosition().x);
+            double spreadAngle = Math.toRadians((added * 137.5) % 360.0);
+            double sideOffset = (added % 2 == 0 ? 1.0 : -1.0) * Math.PI * 0.34;
+            double angle = outwardAngle + sideOffset + spreadAngle * 0.22;
+            double distance = 2300.0 + (added % 4) * 720.0 + (added / guardedPlanets.size()) * 520.0;
+            double x = planet.getPosition().x + Math.cos(angle) * distance;
+            double y = planet.getPosition().y + Math.sin(angle) * distance;
+            if (distance(x, y, PLAYER_SAFE_START_X, PLAYER_SAFE_START_Y) < PLAYER_SAFE_ENEMY_RADIUS) {
+                angle += Math.PI;
+                x = planet.getPosition().x + Math.cos(angle) * distance;
+                y = planet.getPosition().y + Math.sin(angle) * distance;
+            }
+            addEnemy(new MobileEnemy(x, y), consumer);
+        }
     }
 
     public void updatePlanetOrbitAvoidance() {
@@ -176,11 +203,31 @@ public class LevelManager {
         return planet.getOrbitSpeed() >= 0 ? angle : 360.0 - angle;
     }
 
-    private void scalePlanetOrbitRadii(double[][] coords, double scale) {
-        for (double[] coord : coords) {
-            coord[0] *= scale;
-            coord[1] *= scale;
+    private double[][] createEvenlyDistributedPlanetPositions() {
+        double[] radii = {
+                5600.0,
+                6500.0,
+                7500.0,
+                8600.0,
+                9800.0,
+                11100.0,
+                12500.0
+        };
+        double[] angles = {25.0, 78.0, 132.0, 186.0, 238.0, 294.0, 345.0};
+        double[][] positions = new double[radii.length][2];
+
+        for (int i = 0; i < radii.length; i++) {
+            double rad = Math.toRadians(angles[i]);
+            positions[i][0] = Math.cos(rad) * radii[i];
+            positions[i][1] = Math.sin(rad) * radii[i];
         }
+        return positions;
+    }
+
+    private double distance(double ax, double ay, double bx, double by) {
+        double dx = ax - bx;
+        double dy = ay - by;
+        return Math.sqrt(dx * dx + dy * dy);
     }
 
     private void makeStarBrightAndOpaque(Planet star) {

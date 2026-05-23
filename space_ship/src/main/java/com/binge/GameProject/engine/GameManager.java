@@ -17,6 +17,7 @@ import com.binge.GameProject.model.Player;
 import com.binge.GameProject.physics.PhysicsEngine;
 import com.binge.GameProject.physics.Vector2D;
 import com.binge.GameProject.rendering.CameraManager;
+import com.binge.GameProject.utils.GameConfig;
 import javafx.scene.Group;
 
 import java.util.ArrayList;
@@ -52,11 +53,13 @@ public class GameManager {
     }
 
     private void initWorld() {
-        player = new Player(0, -9000, this);
+        player = new Player(GameConfig.PLAYER_START_X, GameConfig.PLAYER_START_Y, this);
         addGameObject(player);
         levelManager.buildDemoLevel(this::addGameObject);
         remainingTime = 180.0;
         missionManager.reset();
+        rescueManager.reset();
+        combatManager.reset();
         timeScaleController.reset();
         scoreResult = null;
     }
@@ -161,7 +164,7 @@ public class GameManager {
     private void removeDeadObjects() {
         removeDeadFrom(dynamicObjects);
         removeDeadFrom(staticObjects);
-        levelManager.getEnemies().removeIf(enemy -> !enemy.isAlive());
+        levelManager.getEnemies().removeIf(GameObject::isDead);
     }
 
     private void removeDeadFrom(List<GameObject> objects) {
@@ -176,7 +179,7 @@ public class GameManager {
     }
 
     private void applyBoundarySystem(double dt) {
-        double limit = 10200.0;
+        double limit = GameConfig.WORLD_BOUNDARY_LIMIT;
         Vector2D pos = player.getPosition();
         if (Math.abs(pos.x) > limit || Math.abs(pos.y) > limit) {
             Vector2D pull = new Vector2D(-pos.x, -pos.y).normalize().multiply(600 * dt);
@@ -186,7 +189,8 @@ public class GameManager {
     }
 
     private void finishMission() {
-        scoreResult = scoreManager.calculate(getRescuedCount(), getOriginalTotalIdolCount(), getLostCount(), player.getHp());
+        scoreResult = scoreManager.calculate(getOriginalTotalIdolCount(), getRescuedCount(), getLostCount(),
+                getAliveRescuedCount(), getEnemyKillCount(), player.getHp());
         currentState = GameState.MISSION_CLEAR;
         audioSystem.stopAll();
     }
@@ -234,18 +238,22 @@ public class GameManager {
     public double getRemainingTime() { return remainingTime; }
     public double getTimeScale() { return timeScaleController.getTimeScale(); }
     public int getOriginalTotalIdolCount() { return levelManager.getOriginalTotalIdolCount(); }
-    public int getRescuedCount() { return player.getRescueGroup().size(); }
+    public int getRescuedCount() { return rescueManager.getTotalRescuedCount(); }
+    public int getAliveRescuedCount() { return player.getRescueGroup().size(); }
     public int getLostCount() { return (int) levelManager.getIdols().stream().filter(Idol::isPermanentlyLost).count(); }
+    public int getEnemyKillCount() { return combatManager.getEnemyKillCount(); }
     public String getRescueEventText() { return rescueManager.getEventText(); }
     public String getCombatWarningText() { return combatManager.getWarningText(); }
 
     public boolean isPlayerOutOfBounds() {
-        return Math.abs(player.getPosition().x) > 10200 || Math.abs(player.getPosition().y) > 10200;
+        return Math.abs(player.getPosition().x) > GameConfig.WORLD_BOUNDARY_LIMIT
+                || Math.abs(player.getPosition().y) > GameConfig.WORLD_BOUNDARY_LIMIT;
     }
 
     public ScoreResult getScoreResult() {
         if (scoreResult == null) {
-            scoreResult = scoreManager.calculate(getRescuedCount(), getOriginalTotalIdolCount(), getLostCount(), player.getHp());
+            scoreResult = scoreManager.calculate(getOriginalTotalIdolCount(), getRescuedCount(), getLostCount(),
+                    getAliveRescuedCount(), getEnemyKillCount(), player.getHp());
         }
         return scoreResult;
     }
