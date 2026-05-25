@@ -39,7 +39,7 @@ public class LevelManager {
         enemies.clear();
 
         Planet sun = new Planet(0, 0, 1000, 200000, Color.web("#ffaa00"));
-        makeStarBrightAndOpaque(sun, "/photo/blackpink.jpg");
+        makeStarBrightAndOpaque(sun, null);
         addPlanet(sun, consumer);
 
         java.util.Random rand = new java.util.Random();
@@ -52,6 +52,7 @@ public class LevelManager {
         Planet violet = new Planet(positions[4][0], positions[4][1], 360, 560000, Color.web("#8f5cff"), "/photo/twice.jpg");
         Planet ember = new Planet(positions[5][0], positions[5][1], 410, 610000, Color.web("#f2552c"), "/photo/lesserafim.jpg");
         Planet cobalt = new Planet(positions[6][0], positions[6][1], 470, 680000, Color.web("#3b5bff"), "/photo/babymonster.jpg");
+        Planet obsidian = new Planet(positions[7][0], positions[7][1], 380, 580000, Color.web("#ff8ad8"), "/photo/blackpink.jpg");
         aurora.enableOrbitAround(sun, 0.70);
         neon.enableOrbitAround(sun, -0.52);
         lunar.enableOrbitAround(sun, 0.43);
@@ -59,6 +60,7 @@ public class LevelManager {
         violet.enableOrbitAround(sun, 0.22);
         ember.enableOrbitAround(sun, -0.18);
         cobalt.enableOrbitAround(sun, 0.15);
+        obsidian.enableOrbitAround(sun, -0.12);
 
         List<Planet> guardedPlanets = new ArrayList<>();
 
@@ -69,6 +71,7 @@ public class LevelManager {
         addPlanet(violet, consumer);
         addPlanet(ember, consumer);
         addPlanet(cobalt, consumer);
+        addPlanet(obsidian, consumer);
         guardedPlanets.add(aurora);
         guardedPlanets.add(neon);
         guardedPlanets.add(lunar);
@@ -76,35 +79,40 @@ public class LevelManager {
         guardedPlanets.add(violet);
         guardedPlanets.add(ember);
         guardedPlanets.add(cobalt);
+        guardedPlanets.add(obsidian);
 
         createGroup("AURORA", "aurora-hook", aurora, Color.web("#54f4ff"),
                 new String[]{"Mina", "Sora", "Lumi"},
                 new double[][]{{380, 42, 11}, {470, 156, -8}, {560, 285, 6}},
-                "/photo/a.jpg", DEMO_SONG_PATH, consumer);
+                "/photo/nmixx.jpg", "/pop_musics/bluevalentine.MP3", consumer);
         createGroup("NEON", "neon-chorus", neon, Color.web("#ff72bb"),
                 new String[]{"Rin", "Nana", "Yuki"},
                 new double[][]{{330, 22, -10}, {420, 135, 7}, {510, 264, -5}},
-                "/photo/b.jpg", DEMO_SONG_PATH, consumer);
+                "/photo/e.jpg", "/pop_musics/cake.MP3", consumer);
         createGroup("LUNAR", "lunar-bridge", lunar, Color.web("#d7ff7a"),
                 new String[]{"Hana", "Mei"},
                 new double[][]{{280, 65, 9}, {360, 236, -7}},
-                "/photo/c.jpg", DEMO_SONG_PATH, consumer);
+                "/photo/ive.jpg", "/pop_musics/iam.MP3", consumer);
         createGroup("VERDANT", "verdant-rise", verdant, Color.web("#7dff96"),
                 new String[]{"Aki", "Nori"},
                 new double[][]{{520, 18, 5}, {650, 205, -4}},
-                "/photo/d.jpg", DEMO_SONG_PATH, consumer);
+                "/photo/a.jpg", "/pop_musics/supernova.mp3", consumer);
         createGroup("VIOLET", "violet-wave", violet, Color.web("#c7a6ff"),
                 new String[]{"Rika", "Ena"},
                 new double[][]{{560, 76, -5}, {700, 248, 4}},
-                "/photo/e.jpg", DEMO_SONG_PATH, consumer);
+                "/photo/twice.jpg", "/pop_musics/thisisfor.MP3", consumer);
         createGroup("EMBER", "ember-spark", ember, Color.web("#ff9b6b"),
                 new String[]{"Kira", "Noa"},
                 new double[][]{{610, 116, 4}, {760, 302, -4}},
-                "/photo/a.jpg", DEMO_SONG_PATH, consumer);
+                "/photo/lesserafim.jpg", "/pop_musics/spaghetti.MP3", consumer);
         createGroup("COBALT", "cobalt-drift", cobalt, Color.web("#8fb4ff"),
                 new String[]{"Mio", "Rei"},
                 new double[][]{{690, 34, -3}, {830, 221, 3}},
-                "/photo/b.jpg", DEMO_SONG_PATH, consumer);
+                "/photo/babymonster.jpg", "/pop_musics/drip.MP3", consumer);
+        createGroup("BLACKPINK", "blackpink-banger", obsidian, Color.web("#ffb6c1"),
+                new String[]{"Jennie", "Lisa", "Rosé", "Jisoo"},
+                new double[][]{{550, 45, 8}, {650, 135, -6}, {750, 225, 5}, {850, 315, -4}},
+                "/photo/blackpink.jpg", "/pop_musics/dududu.MP3", consumer);
 
         // 為每顆非恆星行星建立多座外側衛星砲塔，讓救援路線穿過更密集的防線。
         for (Planet planet : guardedPlanets) {
@@ -212,9 +220,10 @@ public class LevelManager {
                 8600.0,
                 9800.0,
                 11100.0,
-                12500.0
+                12500.0,
+                14000.0
         };
-        double[] angles = {25.0, 78.0, 132.0, 186.0, 238.0, 294.0, 345.0};
+        double[] angles = {25.0, 78.0, 132.0, 186.0, 238.0, 294.0, 345.0, 45.0};
         double[][] positions = new double[radii.length][2];
 
         for (int i = 0; i < radii.length; i++) {
