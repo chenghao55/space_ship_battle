@@ -6,6 +6,7 @@ import com.binge.GameProject.model.IdolGroup;
 import com.binge.GameProject.model.MobileEnemy;
 import com.binge.GameProject.model.Planet;
 import com.binge.GameProject.utils.GameConfig;
+import javafx.scene.image.Image;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
@@ -38,19 +39,19 @@ public class LevelManager {
         enemies.clear();
 
         Planet sun = new Planet(0, 0, 1000, 200000, Color.web("#ffaa00"));
-        makeStarBrightAndOpaque(sun);
+        makeStarBrightAndOpaque(sun, "/photo/blackpink.jpg");
         addPlanet(sun, consumer);
 
         java.util.Random rand = new java.util.Random();
         double[][] positions = createEvenlyDistributedPlanetPositions();
 
-        Planet aurora = new Planet(positions[0][0], positions[0][1], 267, 500000, Color.web("#3ec7ff"));
-        Planet neon = new Planet(positions[1][0], positions[1][1], 210, 300000, Color.web("#ff4f9a"));
-        Planet lunar = new Planet(positions[2][0], positions[2][1], 160, 120000, Color.web("#d8d8e8"));
-        Planet verdant = new Planet(positions[3][0], positions[3][1], 320, 520000, Color.web("#2ee66b"));
-        Planet violet = new Planet(positions[4][0], positions[4][1], 360, 560000, Color.web("#8f5cff"));
-        Planet ember = new Planet(positions[5][0], positions[5][1], 410, 610000, Color.web("#f2552c"));
-        Planet cobalt = new Planet(positions[6][0], positions[6][1], 470, 680000, Color.web("#3b5bff"));
+        Planet aurora = new Planet(positions[0][0], positions[0][1], 267, 500000, Color.web("#3ec7ff"), "/photo/nmixx.jpg");
+        Planet neon = new Planet(positions[1][0], positions[1][1], 210, 300000, Color.web("#ff4f9a"), "/photo/e.jpg");
+        Planet lunar = new Planet(positions[2][0], positions[2][1], 160, 120000, Color.web("#d8d8e8"), "/photo/ive.jpg");
+        Planet verdant = new Planet(positions[3][0], positions[3][1], 320, 520000, Color.web("#2ee66b"), "/photo/a.jpg");
+        Planet violet = new Planet(positions[4][0], positions[4][1], 360, 560000, Color.web("#8f5cff"), "/photo/twice.jpg");
+        Planet ember = new Planet(positions[5][0], positions[5][1], 410, 610000, Color.web("#f2552c"), "/photo/lesserafim.jpg");
+        Planet cobalt = new Planet(positions[6][0], positions[6][1], 470, 680000, Color.web("#3b5bff"), "/photo/babymonster.jpg");
         aurora.enableOrbitAround(sun, 0.70);
         neon.enableOrbitAround(sun, -0.52);
         lunar.enableOrbitAround(sun, 0.43);
@@ -230,12 +231,23 @@ public class LevelManager {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    private void makeStarBrightAndOpaque(Planet star) {
+    private void makeStarBrightAndOpaque(Planet star, String texturePath) {
         if (!(star.getView() instanceof Sphere sphere)) return;
         Color warmOrange = Color.web("#ff8a00");
         PhongMaterial material = new PhongMaterial(warmOrange);
         material.setSpecularColor(Color.web("#fff1b8"));
-        material.setSelfIlluminationMap(createSolidImage(warmOrange));
+        if (texturePath != null) {
+            var imageUrl = LevelManager.class.getResource(texturePath);
+            if (imageUrl != null) {
+                Image img = new Image(imageUrl.toExternalForm());
+                material.setDiffuseMap(img);
+                material.setSelfIlluminationMap(img);
+            } else {
+                material.setSelfIlluminationMap(createSolidImage(warmOrange));
+            }
+        } else {
+            material.setSelfIlluminationMap(createSolidImage(warmOrange));
+        }
         sphere.setMaterial(material);
         sphere.setOpacity(1.0);
     }

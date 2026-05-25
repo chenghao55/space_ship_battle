@@ -1,5 +1,6 @@
 package com.binge.GameProject.model;
 
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Sphere;
@@ -37,6 +38,24 @@ public class Planet extends GameObject {
         
         // 更新畫面到正確位置
         updateView();
+    }
+
+    // 建構子：設定星球的位置、大小、質量、顏色與貼圖
+    public Planet(double x, double y, double radius, double mass, Color color, String texturePath) {
+        this(x, y, radius, mass, color);
+        setTexture(texturePath);
+    }
+
+    // 設定星球的貼圖
+    public void setTexture(String texturePath) {
+        if (texturePath != null && this.view instanceof Sphere sphere) {
+            if (sphere.getMaterial() instanceof PhongMaterial mat) {
+                var imageUrl = Planet.class.getResource(texturePath);
+                if (imageUrl != null) {
+                    mat.setDiffuseMap(new Image(imageUrl.toExternalForm()));
+                }
+            }
+        }
     }
 
     // 每幀更新星球的邏輯
