@@ -44,6 +44,7 @@ public class GameManager {
     private final CameraManager cameraManager;
     private double remainingTime = 180.0;
     private double endingFreezeTimer = 0.0;
+    private boolean rescueUnitDebugLogged;
     private ScoreResult scoreResult;
 
     public GameManager(Group worldRoot, CameraManager cameraManager) {
@@ -61,6 +62,7 @@ public class GameManager {
         rescueManager.reset();
         combatManager.reset();
         timeScaleController.reset();
+        rescueUnitDebugLogged = false;
         scoreResult = null;
     }
 
@@ -144,11 +146,50 @@ public class GameManager {
             }
         }
         objectsToAdd.clear();
+        logRescueUnitDebugOnce();
+    }
+
+    private void logRescueUnitDebugOnce() {
+        if (rescueUnitDebugLogged || levelManager.getIdols().isEmpty()) return;
+        rescueUnitDebugLogged = true;
+
+        System.out.println("[RescueUnitDebug] ===== rescue unit world object check =====");
+        for (Planet planet : levelManager.getPlanets()) {
+            if (planet.getGroupId() == null) continue;
+            System.out.printf("[RescueUnitDebug] planet group=%s units=%d texture=%s position=(%.1f, %.1f)%n",
+                    planet.getGroupId(), planet.getIdols().size(), planet.getTexturePath(),
+                    planet.getPosition().x, planet.getPosition().y);
+        }
+
+        for (Idol idol : levelManager.getIdols()) {
+            boolean joinedWorld = idol.getView() != null && worldRoot.getChildren().contains(idol.getView());
+            boolean visible = idol.getView() != null && idol.getView().isVisible();
+            double opacity = idol.getView() == null ? -1.0 : idol.getView().getOpacity();
+            Planet parent = idol.getParentPlanet();
+            System.out.printf("[RescueUnitDebug] idol=%s parent=%s orbitRadius=%.1f orbitAngle=%.1f texture=%s joinedWorld=%s visible=%s opacity=%.2f position=(%.1f, %.1f)%n",
+                    idol.getIdolId(),
+                    parent == null ? "null" : parent.getGroupId(),
+                    idol.getOrbitRadius(),
+                    idol.getOrbitAngle(),
+                    idol.getPortraitTexturePath(),
+                    joinedWorld,
+                    visible,
+                    opacity,
+                    idol.getPosition().x,
+                    idol.getPosition().y);
+
+            if (idol.isAvailable() || idol.getState() == com.binge.GameProject.model.IdolState.RESCUED) {
+                if (idol.getView() == null || !joinedWorld || !visible || opacity < 0.5 || parent == null) {
+                    System.out.printf("[RescueUnitDebug][WARNING] idol=%s has invalid world view state: viewNull=%s joinedWorld=%s visible=%s opacity=%.2f parentNull=%s%n",
+                            idol.getIdolId(), idol.getView() == null, joinedWorld, visible, opacity, parent == null);
+                }
+            }
+        }
     }
 
     private void updateVisualOnly(double dt) {
         for (GameObject obj : staticObjects) {
-            if (obj instanceof Planet) obj.update(dt);
+            if (obj instanceof Planet || obj instanceof Idol) obj.update(dt);
         }
     }
 

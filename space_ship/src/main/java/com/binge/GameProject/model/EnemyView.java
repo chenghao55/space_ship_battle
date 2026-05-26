@@ -10,6 +10,7 @@ import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Rotate;
 
 public class EnemyView {
+    private static final double MODEL_SCALE = 4.0 / 3.0;
     private final Group root = new Group();
     private final Group ring = new Group();
     private final Group flashGroup = new Group();
@@ -40,6 +41,7 @@ public class EnemyView {
         buildExplosionFlash();
         buildCore();
         root.getChildren().addAll(explosionGroup, debrisGroup, ring, flashGroup, core);
+        setRootScale(MODEL_SCALE);
     }
 
     private void buildCore() {
@@ -138,10 +140,8 @@ public class EnemyView {
         if (exploding) {
             explosionTimer -= dt;
             double progress = 1.0 - Math.max(0, explosionTimer) / 0.85;
-            double scale = 1.0 + progress * 2.2;
-            root.setScaleX(scale);
-            root.setScaleY(scale);
-            root.setScaleZ(scale);
+            double scale = MODEL_SCALE * (1.0 + progress * 2.2);
+            setRootScale(scale);
             root.setOpacity(Math.max(0, 1.0 - progress));
             updateExplosionFlash(progress);
             updateExplosionDebris(progress);
@@ -223,5 +223,11 @@ public class EnemyView {
 
     public Group getRoot() {
         return root;
+    }
+
+    private void setRootScale(double scale) {
+        root.setScaleX(scale);
+        root.setScaleY(scale);
+        root.setScaleZ(scale);
     }
 }

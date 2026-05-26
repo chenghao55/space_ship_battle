@@ -15,6 +15,8 @@ import com.binge.GameProject.utils.GameConfig;
 import java.util.List;
 
 public class CombatManager {
+    private static final double ENEMY_BODY_COLLISION_RADIUS = 70.0;
+    private static final double ENEMY_BULLET_HIT_RADIUS = 64.0;
     private double invulnerabilityTimer;
     private String warningText = "";
     private double warningTimer;
@@ -51,7 +53,7 @@ public class CombatManager {
                 }
             }
 
-            if (distance < 55) {
+            if (distance < ENEMY_BODY_COLLISION_RADIUS) {
                 boolean destroyed = enemy.takeDamage(99);
                 if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
                     com.binge.GameProject.audio.AudioSystem.getInstance().playHit();
@@ -80,7 +82,7 @@ public class CombatManager {
             if (bullet.getOwner() == BulletOwner.PLAYER) {
                 for (Enemy enemy : enemies) {
                     if (!enemy.isAlive()) continue;
-                    if (enemy.getPosition().distance(bullet.getPosition()) < 48) {
+                    if (enemy.getPosition().distance(bullet.getPosition()) < ENEMY_BULLET_HIT_RADIUS) {
                         boolean destroyed = enemy.takeDamage(1);
                         bullet.setDead(true);
                         if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {

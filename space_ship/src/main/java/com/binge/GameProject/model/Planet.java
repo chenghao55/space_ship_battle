@@ -6,10 +6,17 @@ import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Rotate;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 // Planet 代表遊戲中的星球 (包含提供光照的恆星，以及提供引力、碰撞與救援配置的行星)
 public class Planet extends GameObject {
     private double mass;   // 星球的質量 (質量越大，引力越強)
     private double radius; // 星球的半徑 (大小)
+    private String groupId;
+    private String texturePath;
+    private final List<Idol> idols = new ArrayList<>();
     private Rotate rotateTransform; // 用來讓星球自轉的變形器
     private Planet orbitCenter;
     private double orbitRadius;
@@ -48,6 +55,7 @@ public class Planet extends GameObject {
 
     // 設定星球的貼圖
     public void setTexture(String texturePath) {
+        this.texturePath = texturePath;
         if (texturePath != null && this.view instanceof Sphere sphere) {
             if (sphere.getMaterial() instanceof PhongMaterial mat) {
                 var imageUrl = Planet.class.getResource(texturePath);
@@ -97,6 +105,15 @@ public class Planet extends GameObject {
     public double getOrbitRadius() { return orbitRadius; }
     public double getOrbitAngle() { return orbitAngle; }
     public double getOrbitSpeed() { return orbitSpeed; }
+    public String getGroupId() { return groupId; }
+    public void setGroupId(String groupId) { this.groupId = groupId; }
+    public String getTexturePath() { return texturePath; }
+    public void addIdol(Idol idol) {
+        if (idol != null && !idols.contains(idol)) {
+            idols.add(idol);
+        }
+    }
+    public List<Idol> getIdols() { return Collections.unmodifiableList(idols); }
     public boolean hasOrbit() { return orbitCenter != null; }
     public boolean isOrbitPaused() { return orbitPaused; }
     public void setOrbitPaused(boolean orbitPaused) { this.orbitPaused = orbitPaused; }

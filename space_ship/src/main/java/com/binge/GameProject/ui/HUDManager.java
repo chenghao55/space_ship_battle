@@ -7,6 +7,7 @@ import com.binge.GameProject.model.GameObject;
 import com.binge.GameProject.model.Idol;
 import com.binge.GameProject.model.Player;
 import com.binge.GameProject.physics.Vector2D;
+import com.binge.GameProject.utils.TextureRegistry;
 import javafx.scene.Group;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -153,16 +154,30 @@ public class HUDManager {
     }
 
     private void drawPortraits(Player player) {
-        double x = 32;
-        double y = 672;
+        final int cardsPerRow = 10;
+        final double scale = 1.0;
+        final double baseX = 32;
+        final double baseY = 672;
+        final double cardW = 36 * scale;
+        final double cardH = 40 * scale;
+        final double imageW = 28 * scale;
+        final double imageH = 36 * scale;
+        final double colGap = 46 * scale;
+        final double rowGap = 46 * scale;
+        final double arc = 10 * scale;
         int i = 0;
         for (Idol idol : player.getRescueGroup().getRescuedIdols()) {
-            double px = x + i * 46;
-            gc.setFill(idol.getState().name().equals("SINGING") ? Color.web("#fff58a") : Color.web("#55e6ff"));
-            gc.fillOval(px, y - 28, 32, 32);
-            gc.setFill(Color.BLACK);
-            gc.setFont(new Font("Consolas", 12));
-            gc.fillText(idol.getDisplayName().substring(0, 1), px + 11, y - 8);
+            int col = i % cardsPerRow;
+            int row = i / cardsPerRow;
+            double px = baseX + col * colGap;
+            double y = baseY - row * rowGap;
+            boolean singing = idol.getState().name().equals("SINGING");
+            gc.setFill(singing ? Color.web("#fff58a", 0.88) : Color.web("#55e6ff", 0.72));
+            gc.fillRoundRect(px - 2 * scale, y - 38 * scale, cardW, cardH, arc, arc);
+            gc.drawImage(TextureRegistry.getInstance().loadOrPlaceholder(idol.getPortraitTexturePath()),
+                    px + 2 * scale, y - 36 * scale, imageW, imageH);
+            gc.setStroke(singing ? Color.web("#fff58a") : Color.web("#55e6ff"));
+            gc.strokeRoundRect(px - 2 * scale, y - 38 * scale, cardW, cardH, arc, arc);
             i++;
         }
     }
