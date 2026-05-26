@@ -6,7 +6,6 @@ import com.binge.GameProject.physics.Hitbox;
 import com.binge.GameProject.physics.Vector2D;
 import com.binge.GameProject.utils.GameConfig;
 import javafx.scene.Group;
-import javafx.scene.input.MouseButton;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
@@ -114,17 +113,16 @@ public class Player extends GameObject {
 
         // --- 1. 處理轉向 (A / D) ---
         if (canControl) {
+            double turnAmount = 0.0;
             if (input.isPressed("A") || input.isPressed("LEFT")) {
-                rotationAngle -= rotationSpeed * dt; // 往左轉
-                // 如果有速度，也同步將速度向量轉向，確保操控符合機頭方向
-                if (velocity.magnitudeSquared() > 1.0) {
-                    double mag = Math.sqrt(velocity.magnitudeSquared());
-                    double rad = Math.toRadians(rotationAngle);
-                    velocity.set(mag * Math.sin(rad), mag * Math.cos(rad));
-                }
+                turnAmount -= rotationSpeed * dt; // 往左轉
             }
             if (input.isPressed("D") || input.isPressed("RIGHT")) {
-                rotationAngle += rotationSpeed * dt; // 往右轉
+                turnAmount += rotationSpeed * dt; // 往右轉
+            }
+
+            if (Math.abs(turnAmount) > 0.0001) {
+                rotationAngle += turnAmount;
                 if (velocity.magnitudeSquared() > 1.0) {
                     double mag = Math.sqrt(velocity.magnitudeSquared());
                     double rad = Math.toRadians(rotationAngle);

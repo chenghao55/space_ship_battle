@@ -45,7 +45,7 @@ AudioSystem 同團最近音源 / 多團混音 / 環境音淡出
  ↓
 UIManager 更新 HUD / 警告 / 結算
  ↓
-CameraManager 慢動作、震動、FOV
+CameraManager 停格演出、震動、FOV
  ↓
 Render JavaFX Nodes
 ```
@@ -100,6 +100,7 @@ src/
 
     ├── rendering/
     │   ├── CameraManager.java
+    │   ├── IdolBillboardView.java
     │   ├── LightSystem.java
     │   ├── ParticleRenderer.java
     │   ├── TrailEffect.java
@@ -130,6 +131,8 @@ src/
 
     └── utils/
         ├── ResourceManager.java
+        ├── TextureRegistry.java
+        ├── GroupConfig.java
         ├── MathUtil.java
         └── GameConfig.java
 ```
@@ -267,9 +270,9 @@ class TimeScaleController {
 
 ```text
 一般遊戲：timeScale = 1.0
-最後救援瞬間：timeScale = 0.1
-持續 2.5 秒
-結束後 fade out → MISSION_CLEAR
+最後救援瞬間：進入 ENDING_FREEZE，遊戲物理與戰鬥更新暫停
+持續 0.15 秒
+結束後直接 fade out / 切換 → MISSION_CLEAR
 ```
 
 ---
@@ -315,7 +318,9 @@ Space / 滑鼠左鍵 → 射擊
 飛船物理方向：由 velocity 決定
 飛船視覺方向：平滑朝 velocity 轉動
 大角度轉向：提高 driftIntensity
+滑鼠移動不得影響飛船左右方向；轉向只由鍵盤方向輸入、速度方向與物理狀態決定，滑鼠左鍵僅作射擊輸入。
 Boost 或 driftIntensity 高：啟動尾翼殘影
+Boost 的 Camera FOV 只做輕微放大，讓玩家感覺速度上升但不造成明顯畫面縮小或視野跳動。
 按住 W 推進時，若速度低於最低巡航速度，物理層會把速度補到最低巡航速度。
 任何狀態下若速度高於最高速度，物理層會把速度 clamp 回最高速度，避免 Boost 或重力彈弓造成無限制暴衝。
 ```
@@ -351,8 +356,7 @@ void enforceFlightSpeedLimits();
 
 ```java
 enum IdolState {
-    HIDDEN,
-    DETECTED,
+    AVAILABLE,
     RESCUED,
     SINGING,
     LOST
@@ -366,12 +370,16 @@ class Idol extends StaticObject {
     String idolId;
     String groupId;
     String displayName;
+    int memberIndex;
+    String portraitTexturePath;
+    String groupLogoTexturePath;
+    String musicFile;
+    int totalGroupMemberCount;
 
     IdolState state;
 
     Planet parentPlanet;
 
-    double detectRadius = 50.0;
     double volume;
     double singTimer;
 
@@ -386,8 +394,7 @@ class Idol extends StaticObject {
 ### 狀態轉換
 
 ```text
-HIDDEN → DETECTED：玩家進入半徑 50
-DETECTED → RESCUED：玩家 Hitbox 觸碰 Idol
+AVAILABLE → RESCUED：玩家 Hitbox / 救援吸引範圍接觸 Idol
 RESCUED → SINGING：隨機唱歌事件
 RESCUED / SINGING → LOST：玩家受擊時最後一位 Idol 流失
 ```
@@ -403,17 +410,27 @@ idol.y = planet.y + sin(orbitAngle) * orbitRadius
 orbitAngle += orbitSpeed * dt
 ```
 
-在 `HIDDEN` / `DETECTED` 狀態時，Idol 持續環繞母行星。  
+在 `AVAILABLE` 狀態時，Idol 持續環繞母行星。  
 進入 `RESCUED` 後由 `RescueGroup` 接管位置，不再跟隨行星軌道。
 
 展示版實作要求：
 
-1. Idol 的 JavaFX View 必須是可見的球形節點，未救援時也顯示在行星外側軌道上。
-2. `detectRadius` 只負責聲音、雷達與 UI 提示。
-3. 救援成功只能由 `PlayerShip.getRescueHitboxes()` 與 Idol 球體碰撞觸發。
-4. 不能因為玩家進入偵測範圍就自動救援。
-5. Idol 球體材質必須使用 `resources/photo` 的圖片貼圖。
-6. 同一個 `IdolGroup` 的所有 Idol 必須使用同一張 photo 表皮，因為同一顆星球對應同一個女團。
+1. Idol 的 JavaFX View 必須改為直立式 capsule billboard / hologram panel，不再使用 Sphere 或厚重橢球。
+2. AVAILABLE 是唯一的救援前狀態；聲音與雷達可依距離計算，但不可控制 Idol 是否顯示。
+3. 救援成功由 `PlayerShip.getRescueHitboxes()` 與 Idol 救援吸引半徑觸發。
+4. AVAILABLE 狀態從開局就顯示完整人物 panel，group logo badge 只作為輔助標記。
+5. 每個 Idol 使用 `IdolPic/{memberPortraitPrefix}{memberIndex}.png|jpg|jpeg` 的個別人物圖片。
+6. 若個別人物圖片不存在，fallback 到該 group logo；若 group logo 不存在，使用 placeholder。
+7. 同一個 `IdolGroup` 的行星使用 group logo texture，但救援單位使用各自成員人物 texture。
+8. 每幀依玩家 / camera 方向更新 billboard 朝向，確保立牌永遠面向飛機螢幕畫面，人物圖正面可讀。
+9. LevelManager 建立 Idol 後必須立即 `consumer.add(idol)`，GameManager 必須把 idol view 加入 worldRoot；救援 UI 不可取代世界物件本體。
+10. AVAILABLE panel 以目前縮小版立牌為基準放大約 1.7 倍，仍保持直立全息立牌比例，避免大量 Idol 遮擋畫面。
+11. 禁用小型水平 marker / 圓點式 world rescue icon；世界中的救援單位主體必須是大型直立 capsule hologram panel。
+12. `IdolBillboardView` / `RescueUnitView` 必須使用 JavaFX primitive shapes 建立真正的 world object：薄 Box 角色牌本體、portrait 材質面、發光背板、3D 邊框、group logo badge、唱歌 pulse 與 rescued trail；不得以小型水平 marker 或單純 UI card 取代。
+13. Idol view 必須參與 JavaFX 3D depth buffer，因為它是世界中的實體 / 可遮擋物件；不得使用 `DepthTest.DISABLE` 讓它永遠蓋在行星或敵人上。
+14. 角色牌尺寸調整後，`RescueManager` 的救援半徑、`RescueGroup` 跟隨間距與 rescue hitbox 需一起調整，讓互動範圍符合目前約 1.7 倍大小的立牌。
+15. Idol 的軌道座標必須對齊世界立牌的中心點；`IdolBillboardView` 不可把整張牌向上偏移到讓 orbit position 落在底部或底座。
+16. GameManager 首次 flush world objects 後輸出 rescue unit debug log，若 AVAILABLE / RESCUED Idol view 為 null、未加入 worldRoot、不可見、opacity < 0.5、沒有 parentPlanet，必須印出 warning。
 
 ### 永久流失
 
@@ -432,9 +449,12 @@ orbitAngle += orbitSpeed * dt
 class IdolGroup {
     String groupId;
     String songId;
+    String planetTexturePath;
+    String memberPortraitPrefix;
+    int memberCount;
     List<Idol> idols;
 
-    Idol getNearestDetectableIdol(PlayerShip player);
+    Idol getNearestAvailableIdol(PlayerShip player);
 }
 ```
 
@@ -505,7 +525,7 @@ class Planet extends StaticObject {
 ### 需要執行
 
 1. 每個 Planet 對應一個女團。
-2. Planet 內部持有 `List<Idol>`。
+2. Planet 內部持有 `List<Idol>`，LevelManager 建立每位 Idol 後必須呼叫 `planet.addIdol(idol)`。
 3. 初始化時在行星軌道或周邊星塵中生成多名 Idol。
 4. 對 PlayerShip 施加引力、切線加速與重力彈弓效果。
 5. 玩家貼近時施加碰撞推出力場。
@@ -526,6 +546,7 @@ planet.y = star.y + sin(orbitAngle) * orbitRadius
 ```
 
 5. Idol 的軌道位置以母行星最新位置為中心，因此會跟著公轉中的行星移動。
+6. Idol 軌道半徑中的「行星表面外距離」改為上一版目前距離的 1/2，也就是 `orbitRadius = planet.radius + surfaceClearance * 0.5` 的概念。
 
 ### 外圈新增行星
 
@@ -595,7 +616,7 @@ class Enemy extends StaticObject {
 6. 敵人使用預判射擊，但攻擊頻率不可過高。
 7. 預判射擊可保留少量誤差，但不可再只朝玩家當前座標慢速發射。
 8. 本版調整：`aggroRadius` 縮小，`shootCooldown` 比上一版增加 1 秒，降低壓迫感。
-9. 砲台敵人數量調整為目前配置的 3/4；展示版每顆行星 3 座砲台。
+9. 砲台型敵人數量調整為上一版目前配置的一半；展示版 8 顆女團行星合計約 12 座砲台，分散成每顆 1~2 座。
 10. 新增移動型敵人，使用和砲台相同的 HP、預判射擊、受擊與爆炸邏輯。
 11. 移動型敵人的核心為綠色，定位為快速攔截單位。
 12. 移動型敵人的偵測 / 攻擊半徑為上一版移動型敵人的 3 倍；進入範圍後快速飛向玩家目前視角 / 機頭方向前方的攔截點。
@@ -603,7 +624,8 @@ class Enemy extends StaticObject {
 14. 移動型敵人射擊頻率為前一版移動型敵人的 1.5 倍，等價於射擊冷卻除以 1.5。
 15. 移動型敵人數量為前一版的 4 倍，LevelManager 必須分散擺放到不同星球外側與不同角度。
 14. 敵人位置必須大幅散開，不可在每顆行星旁密集擠成小團。
-15. HP <= 0 後立刻關閉射擊、碰撞與被攻擊判定，但保留死亡爆炸特效直到播放完畢。
+15. 砲台型與移動型敵人的程序化模型視覺尺寸都要改為上一版目前大小的約 2/3，包含核心、環、砲管與 muzzle flash；命中半徑需同步縮回。
+16. HP <= 0 後立刻關閉射擊、碰撞與被攻擊判定，但保留死亡爆炸特效直到播放完畢。
 
 ### EnemyView
 
@@ -915,7 +937,7 @@ class MusicMixer {
 
 ```text
 for each IdolGroup:
-    nearest = group.getNearestDetectableIdol(player)
+    nearest = group.getNearestAvailableIdol(player)
     volume = calculateVolume(nearest)
     play only group.songId at this volume
 ```
@@ -926,8 +948,9 @@ for each IdolGroup:
 ### Resource Binding
 
 ```text
-resources/photo/*.jpg → Idol 球形貼圖
-resources/pop_musics/supernova.mp3 → 展示版所有 IdolGroup 的共用歌曲
+resources/photo/*.jpg → 行星女團 logo texture
+resources/IdolPic/*.{png,jpg,jpeg} → 個別成員人物 portrait texture
+resources/pop_musics/*.mp3|*.MP3 → 各 group 固定歌曲
 ```
 
 每個 `IdolGroup` 需要保存固定 `texturePath` 與 `songPath`：
@@ -939,8 +962,42 @@ class IdolGroup {
 }
 ```
 
-目前 `songPath` 全部使用 `/pop_musics/supernova.mp3`。  
+目前 `songPath` 由 GroupConfig 指定，不再全部使用 `/pop_musics/supernova.mp3`。  
 音量來源必須與雷達脈衝強度一致：`volume = pulseAmplitude` 或相同距離公式，確保雷達震動越強，歌曲越大聲。
+
+### GroupConfig / TextureRegistry
+
+`GroupConfig` 是女團資料來源真相：
+
+```java
+record GroupConfig(
+    String groupId,
+    String musicFile,
+    String planetTexture,
+    int memberCount,
+    String memberPortraitPrefix
+) {}
+```
+
+固定配置：
+
+```text
+nmixx        bluevalentine.MP3  nmixx.jpg        6  nmixx
+itzy         cake.MP3           e.jpg            4  itzy
+ive          iam.MP3            ive.jpg          2  ive
+aespa        supernova.mp3      a.jpg            4  aespa
+twice        thisisfor.MP3      twice.jpg        4  twice
+lesserafim   spaghetti.MP3      lesserafim.jpg   6  lesserafim
+babymonster  drip.MP3           babymonster.jpg  5  babymonster
+blackpink    dududu.MP3         blackpink.jpg    4  blackpink
+```
+
+`TextureRegistry` 集中處理：
+
+1. `resolvePortrait(prefix, memberIndex, logoPath)` 依序嘗試 png / jpg / jpeg。
+2. 找不到人物圖時回傳 logo。
+3. 找不到 logo 時回傳 placeholder image。
+4. 所有圖片使用快取，缺圖不可讓遊戲崩潰。
 
 更新規則：音量與雷達感應必須使用明顯線性關係。  
 雷達未感測到 Idol 時 `volume = 0` 並 pause 該組音樂；進入感測距離後使用：
@@ -1072,7 +1129,7 @@ utils/GameConfig.java
 - 救援目標不必完全碰到飛船或隊伍才救援。
 - 當 Idol 進入救援吸引範圍時，自動吸附並救援。
 - 吸引範圍約為目前救援碰撞判定半徑的 2 倍。
-- 吸引發生時仍要走 `DETECTED → RESCUED` 流程，並加入 `RescueGroup`。
+- 吸引發生時直接走 `AVAILABLE → RESCUED` 流程，並加入 `RescueGroup`。
 
 #### A-5 行星與邊界
 
@@ -1153,10 +1210,10 @@ model/PlayerBullet.java
 - 所有行星初始角度必須盡量均勻分散環繞恆星，避免隨機靠太近或集中在同一側。
 - 每顆行星建立一個 `IdolGroup`。
 - 每個 `IdolGroup` 生成多名環繞行星的 `Idol`，不得把 Idol 放在行星內部。
-- 同一個 `IdolGroup` 生成的所有 Idol 使用同一張 `photo` 貼圖。
-- 展示版所有 `IdolGroup` 的音樂先固定為 `/pop_musics/supernova.mp3`，音量依雷達脈衝強度等比調整。
+- 同一個 `IdolGroup` 的 Planet 使用 group logo texture；該 group 的 Idol 依 memberIndex 使用對應成員人物圖。
+- 展示版所有 `IdolGroup` 的音樂由 GroupConfig 固定指定，音量依雷達脈衝強度等比調整。
 - 生成靜態射擊型敵人。
-- 靜態砲台數量為每顆行星 3 座，等於前一版每顆 4 座配置的 3/4。
+- 靜態砲台總量為上一版目前配置的一半；展示版 8 顆女團行星合計約 12 座砲台，使用每顆 1~2 座方式分散配置。
 - 生成多個分散擺放的移動型敵人，作為追蹤壓力來源；本版數量為前一版配置的 4 倍。
 - 移動型敵人數量為前一版的 4 倍，使用不同星球、不同角度與不同外側距離分散擺放。
 - 所有敵人的初始位置需要大幅散開，使用更寬的角度與距離階梯。
@@ -1167,8 +1224,7 @@ model/PlayerBullet.java
 實作狀態：
 
 ```java
-HIDDEN,
-DETECTED,
+AVAILABLE,
 RESCUED,
 SINGING,
 LOST
@@ -1176,8 +1232,7 @@ LOST
 
 規則：
 
-- 玩家距離 <= 50：`HIDDEN → DETECTED`
-- 玩家任一救援 Hitbox 碰到 Idol：`DETECTED → RESCUED`
+- 玩家任一救援 Hitbox / 吸引範圍碰到 Idol：`AVAILABLE → RESCUED`
 - 已救援 Idol 隨機唱歌：`RESCUED ↔ SINGING`
 - 玩家受擊且該 Idol 是最後一位：`RESCUED / SINGING → LOST`
 
@@ -1185,7 +1240,7 @@ LOST
 
 - 一個 `IdolGroup` 對應一個女團與一首歌。
 - 管理該團所有 Idol。
-- 提供 `getNearestDetectableIdol(player)` 給 C 的 `AudioSystem` 使用。
+- 提供 `getNearestAvailableIdol(player)` 給 C 的 `AudioSystem` 使用。
 - 同團只回傳最近一位，避免 Echo Bug。
 
 #### B-4 RescueManager
@@ -1277,7 +1332,7 @@ ScoreResult getScoreResult();
 
 ### 負責範圍
 
-C 負責玩家看見與聽見的所有回饋：HUD、雷達、聲音、結算、慢動作演出、背景視差、特效。
+C 負責玩家看見與聽見的所有回饋：HUD、雷達、聲音、結算、停格演出、背景視差、特效。
 
 ### 主要負責檔案
 
@@ -1343,6 +1398,15 @@ utils/ResourceManager.java
 - Idol 頭像列。
 - WarningUI。
 - MissionResultUI。
+
+底部 Idol 頭像列規則：
+
+```text
+每 10 個已救援成員為一排
+第 11 個開始往上新增第二排
+第 21 個開始往上新增第三排
+每張底部救援牌尺寸放大為目前 HUD 牌子尺寸的 3 倍
+```
 
 #### C-2 RadarSystem
 
@@ -1513,7 +1577,7 @@ feature/c-result-ui-effects
 2. 60 秒倒數。
 3. HP 5 顆心。
 4. 多顆星球與多名 Idol。
-5. Idol 半徑 50 偵測。
+5. Idol 開局可見，雷達與音樂只作距離提示。
 6. 同團只播放最近 Idol 歌聲。
 7. 觸碰救援。
 8. RescueGroup 跟隨飛船。

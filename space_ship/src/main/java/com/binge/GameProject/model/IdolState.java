@@ -1,8 +1,7 @@
 package com.binge.GameProject.model;
 
 public enum IdolState {
-    HIDDEN,
-    DETECTED,
+    AVAILABLE,
     RESCUED,
     SINGING,
     LOST

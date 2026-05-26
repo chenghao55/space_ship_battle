@@ -6,6 +6,9 @@ import com.binge.GameProject.model.IdolGroup;
 import com.binge.GameProject.model.MobileEnemy;
 import com.binge.GameProject.model.Planet;
 import com.binge.GameProject.utils.GameConfig;
+import com.binge.GameProject.utils.GroupConfig;
+import com.binge.GameProject.utils.TextureRegistry;
+import javafx.scene.image.Image;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
@@ -18,11 +21,10 @@ public class LevelManager {
     private static final double PLANET_ORBIT_RADIUS_SCALE = 0.6;
     private static final double PLANET_ORBIT_PAUSE_DISTANCE = 3600.0;
     private static final double PLANET_ORBIT_RESUME_DISTANCE = 4300.0;
-    private static final int ENEMIES_PER_PLANET = 3;
+    private static final int[] TURRET_COUNT_PATTERN = {1, 2};
     private static final int MOBILE_ENEMY_COUNT = GameConfig.MOVING_ENEMY_COUNT;
     private static final double ENEMY_CLUSTER_BASE_DISTANCE = 2600.0;
     private static final double ENEMY_CLUSTER_DISTANCE_STEP = 900.0;
-    private static final String DEMO_SONG_PATH = "/pop_musics/supernova.mp3";
     private static final double PLAYER_SAFE_START_X = GameConfig.PLAYER_START_X;
     private static final double PLAYER_SAFE_START_Y = GameConfig.PLAYER_START_Y;
     private static final double PLAYER_SAFE_ENEMY_RADIUS = 2300.0;
@@ -38,85 +40,54 @@ public class LevelManager {
         enemies.clear();
 
         Planet sun = new Planet(0, 0, 1000, 200000, Color.web("#ffaa00"));
-        makeStarBrightAndOpaque(sun);
+        makeStarBrightAndOpaque(sun, null);
         addPlanet(sun, consumer);
 
         java.util.Random rand = new java.util.Random();
         double[][] positions = createEvenlyDistributedPlanetPositions();
 
-        Planet aurora = new Planet(positions[0][0], positions[0][1], 267, 500000, Color.web("#3ec7ff"));
-        Planet neon = new Planet(positions[1][0], positions[1][1], 210, 300000, Color.web("#ff4f9a"));
-        Planet lunar = new Planet(positions[2][0], positions[2][1], 160, 120000, Color.web("#d8d8e8"));
-        Planet verdant = new Planet(positions[3][0], positions[3][1], 320, 520000, Color.web("#2ee66b"));
-        Planet violet = new Planet(positions[4][0], positions[4][1], 360, 560000, Color.web("#8f5cff"));
-        Planet ember = new Planet(positions[5][0], positions[5][1], 410, 610000, Color.web("#f2552c"));
-        Planet cobalt = new Planet(positions[6][0], positions[6][1], 470, 680000, Color.web("#3b5bff"));
-        aurora.enableOrbitAround(sun, 0.70);
-        neon.enableOrbitAround(sun, -0.52);
-        lunar.enableOrbitAround(sun, 0.43);
-        verdant.enableOrbitAround(sun, -0.26);
-        violet.enableOrbitAround(sun, 0.22);
-        ember.enableOrbitAround(sun, -0.18);
-        cobalt.enableOrbitAround(sun, 0.15);
-
         List<Planet> guardedPlanets = new ArrayList<>();
+        List<GroupConfig> groupConfigs = GroupConfig.defaults();
+        double[] planetRadii = {267, 210, 160, 320, 360, 410, 470, 380};
+        double[] planetMasses = {500000, 300000, 120000, 520000, 560000, 610000, 680000, 580000};
+        Color[] groupColors = {
+                Color.web("#54f4ff"),
+                Color.web("#ff72bb"),
+                Color.web("#d7ff7a"),
+                Color.web("#7dff96"),
+                Color.web("#c7a6ff"),
+                Color.web("#ff9b6b"),
+                Color.web("#8fb4ff"),
+                Color.web("#ffb6c1")
+        };
+        double[] orbitSpeeds = {0.70, -0.52, 0.43, -0.26, 0.22, -0.18, 0.15, -0.12};
 
-        addPlanet(aurora, consumer);
-        addPlanet(neon, consumer);
-        addPlanet(lunar, consumer);
-        addPlanet(verdant, consumer);
-        addPlanet(violet, consumer);
-        addPlanet(ember, consumer);
-        addPlanet(cobalt, consumer);
-        guardedPlanets.add(aurora);
-        guardedPlanets.add(neon);
-        guardedPlanets.add(lunar);
-        guardedPlanets.add(verdant);
-        guardedPlanets.add(violet);
-        guardedPlanets.add(ember);
-        guardedPlanets.add(cobalt);
-
-        createGroup("AURORA", "aurora-hook", aurora, Color.web("#54f4ff"),
-                new String[]{"Mina", "Sora", "Lumi"},
-                new double[][]{{380, 42, 11}, {470, 156, -8}, {560, 285, 6}},
-                "/photo/a.jpg", DEMO_SONG_PATH, consumer);
-        createGroup("NEON", "neon-chorus", neon, Color.web("#ff72bb"),
-                new String[]{"Rin", "Nana", "Yuki"},
-                new double[][]{{330, 22, -10}, {420, 135, 7}, {510, 264, -5}},
-                "/photo/b.jpg", DEMO_SONG_PATH, consumer);
-        createGroup("LUNAR", "lunar-bridge", lunar, Color.web("#d7ff7a"),
-                new String[]{"Hana", "Mei"},
-                new double[][]{{280, 65, 9}, {360, 236, -7}},
-                "/photo/c.jpg", DEMO_SONG_PATH, consumer);
-        createGroup("VERDANT", "verdant-rise", verdant, Color.web("#7dff96"),
-                new String[]{"Aki", "Nori"},
-                new double[][]{{520, 18, 5}, {650, 205, -4}},
-                "/photo/d.jpg", DEMO_SONG_PATH, consumer);
-        createGroup("VIOLET", "violet-wave", violet, Color.web("#c7a6ff"),
-                new String[]{"Rika", "Ena"},
-                new double[][]{{560, 76, -5}, {700, 248, 4}},
-                "/photo/e.jpg", DEMO_SONG_PATH, consumer);
-        createGroup("EMBER", "ember-spark", ember, Color.web("#ff9b6b"),
-                new String[]{"Kira", "Noa"},
-                new double[][]{{610, 116, 4}, {760, 302, -4}},
-                "/photo/a.jpg", DEMO_SONG_PATH, consumer);
-        createGroup("COBALT", "cobalt-drift", cobalt, Color.web("#8fb4ff"),
-                new String[]{"Mio", "Rei"},
-                new double[][]{{690, 34, -3}, {830, 221, 3}},
-                "/photo/b.jpg", DEMO_SONG_PATH, consumer);
+        for (int i = 0; i < groupConfigs.size(); i++) {
+            GroupConfig config = groupConfigs.get(i);
+            Planet planet = new Planet(positions[i][0], positions[i][1], planetRadii[i], planetMasses[i],
+                    groupColors[i], config.planetTexturePath());
+            planet.setGroupId(config.groupId());
+            planet.enableOrbitAround(sun, orbitSpeeds[i]);
+            addPlanet(planet, consumer);
+            guardedPlanets.add(planet);
+            createGroup(config, planet, groupColors[i], i, consumer);
+        }
 
         // 為每顆非恆星行星建立多座外側衛星砲塔，讓救援路線穿過更密集的防線。
-        for (Planet planet : guardedPlanets) {
-            addEnemyClusterAroundPlanet(planet.getPosition().x, planet.getPosition().y, rand, consumer);
+        for (int i = 0; i < guardedPlanets.size(); i++) {
+            Planet planet = guardedPlanets.get(i);
+            addEnemyClusterAroundPlanet(planet.getPosition().x, planet.getPosition().y,
+                    turretCountForPlanet(i), rand, consumer);
         }
         addMobileEnemies(guardedPlanets, consumer);
     }
 
-    private void addEnemyClusterAroundPlanet(double planetX, double planetY, java.util.Random rand, ObjectConsumer consumer) {
+    private void addEnemyClusterAroundPlanet(double planetX, double planetY, int turretCount,
+                                             java.util.Random rand, ObjectConsumer consumer) {
         double outwardAngle = Math.atan2(planetY, planetX);
-        double[] fanOffsets = {-140.0, 0.0, 140.0};
+        double[] fanOffsets = turretCount == 1 ? new double[]{0.0} : new double[]{-100.0, 100.0};
 
-        for (int i = 0; i < ENEMIES_PER_PLANET; i++) {
+        for (int i = 0; i < turretCount; i++) {
             double angle = outwardAngle + Math.toRadians(fanOffsets[i]) + Math.toRadians(rand.nextDouble() * 12.0 - 6.0);
             double enemyDist = ENEMY_CLUSTER_BASE_DISTANCE + ENEMY_CLUSTER_DISTANCE_STEP * i + rand.nextDouble() * 90.0;
             double ex = planetX + Math.cos(angle) * enemyDist;
@@ -128,6 +99,10 @@ public class LevelManager {
             }
             addEnemy(new Enemy(ex, ey), consumer);
         }
+    }
+
+    private int turretCountForPlanet(int planetIndex) {
+        return TURRET_COUNT_PATTERN[planetIndex % TURRET_COUNT_PATTERN.length];
     }
 
     private void addPlanet(Planet planet, ObjectConsumer consumer) {
@@ -211,9 +186,10 @@ public class LevelManager {
                 8600.0,
                 9800.0,
                 11100.0,
-                12500.0
+                12500.0,
+                14000.0
         };
-        double[] angles = {25.0, 78.0, 132.0, 186.0, 238.0, 294.0, 345.0};
+        double[] angles = {25.0, 78.0, 132.0, 186.0, 238.0, 294.0, 345.0, 45.0};
         double[][] positions = new double[radii.length][2];
 
         for (int i = 0; i < radii.length; i++) {
@@ -230,12 +206,23 @@ public class LevelManager {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    private void makeStarBrightAndOpaque(Planet star) {
+    private void makeStarBrightAndOpaque(Planet star, String texturePath) {
         if (!(star.getView() instanceof Sphere sphere)) return;
         Color warmOrange = Color.web("#ff8a00");
         PhongMaterial material = new PhongMaterial(warmOrange);
         material.setSpecularColor(Color.web("#fff1b8"));
-        material.setSelfIlluminationMap(createSolidImage(warmOrange));
+        if (texturePath != null) {
+            var imageUrl = LevelManager.class.getResource(texturePath);
+            if (imageUrl != null) {
+                Image img = new Image(imageUrl.toExternalForm());
+                material.setDiffuseMap(img);
+                material.setSelfIlluminationMap(img);
+            } else {
+                material.setSelfIlluminationMap(createSolidImage(warmOrange));
+            }
+        } else {
+            material.setSelfIlluminationMap(createSolidImage(warmOrange));
+        }
         sphere.setMaterial(material);
         sphere.setOpacity(1.0);
     }
@@ -250,17 +237,35 @@ public class LevelManager {
         return image;
     }
 
-    private void createGroup(String groupId, String songId, Planet planet, Color color, String[] names,
-                             double[][] orbitData, String texturePath, String songPath, ObjectConsumer consumer) {
-        IdolGroup group = new IdolGroup(groupId, songId, texturePath, songPath);
-        for (int i = 0; i < names.length; i++) {
-            Idol idol = new Idol(groupId + "-" + i, groupId, names[i], planet,
-                    orbitData[i][0], orbitData[i][1], orbitData[i][2], color, texturePath);
+    private void createGroup(GroupConfig config, Planet planet, Color color, int groupIndex, ObjectConsumer consumer) {
+        String logoPath = config.planetTexturePath();
+        String songPath = config.musicPath();
+        IdolGroup group = new IdolGroup(config.groupId(), config.groupId() + "-song", logoPath, songPath,
+                config.memberPortraitPrefix(), config.memberCount());
+        TextureRegistry textures = TextureRegistry.getInstance();
+
+        for (int i = 1; i <= config.memberCount(); i++) {
+            double[] orbitData = createMemberOrbit(planet, config.memberCount(), i, groupIndex);
+            String portraitPath = textures.resolvePortraitPath(config.memberPortraitPrefix(), i, logoPath);
+            Idol idol = new Idol(config.groupId() + "-" + i, config.groupId(), i,
+                    config.groupId() + "-" + i, planet,
+                    orbitData[0], orbitData[1], orbitData[2], color,
+                    portraitPath, logoPath, config.musicFile(), config.memberCount());
             group.add(idol);
+            planet.addIdol(idol);
             idols.add(idol);
             consumer.add(idol);
         }
         idolGroups.add(group);
+    }
+
+    private double[] createMemberOrbit(Planet planet, int memberCount, int memberIndex, int groupIndex) {
+        double spacing = 360.0 / memberCount;
+        double orbitRadius = planet.getRadius() + 260.0 + (memberIndex % 3) * 60.0 + (memberIndex / 4) * 35.0;
+        double orbitAngle = groupIndex * 23.0 + (memberIndex - 1) * spacing;
+        double direction = memberIndex % 2 == 0 ? -1.0 : 1.0;
+        double orbitSpeed = direction * (5.0 + (memberIndex % 4) * 1.4);
+        return new double[]{orbitRadius, orbitAngle, orbitSpeed};
     }
 
     public List<Planet> getPlanets() { return planets; }
