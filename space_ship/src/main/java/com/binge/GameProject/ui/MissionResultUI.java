@@ -6,6 +6,7 @@ import javafx.scene.Group;
 import javafx.scene.control.Button;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
@@ -16,7 +17,7 @@ import com.binge.GameProject.gameplay.ScoreResult;
 
 // MissionResultUI 提供電影級任務結算畫面 (全息 UI)
 public class MissionResultUI {
-    private Group uiRoot;
+    private StackPane uiRoot;
     private VBox mainPanel;
     private Rectangle darkOverlay;
     private VBox leftStats;
@@ -28,17 +29,15 @@ public class MissionResultUI {
     private Runnable onReturnToMenu;
 
     public MissionResultUI(Group root, double width, double height) {
-        this.uiRoot = new Group();
+        this.uiRoot = new StackPane();
+        uiRoot.setPrefSize(width, height);
         
         // 背景暗化遮罩
         darkOverlay = new Rectangle(width, height, Color.web("#000000", 0.7));
-        uiRoot.getChildren().add(darkOverlay);
 
         // 主面板
         mainPanel = new VBox(40);
         mainPanel.setAlignment(Pos.CENTER);
-        mainPanel.setPrefWidth(width);
-        mainPanel.setPrefHeight(height);
 
         // 標題
         Text title = new Text("MISSION COMPLETE");
@@ -81,14 +80,14 @@ public class MissionResultUI {
         HBox buttonBox = new HBox(30);
         buttonBox.setAlignment(Pos.CENTER);
         
-        Button retryBtn = createStyledButton("RETRY");
-        Button menuBtn = createStyledButton("RETURN TO MENU");
+        ResultButton retryBtn = new ResultButton("RETRY");
+        ResultButton menuBtn = new ResultButton("RETURN TO MENU");
         
         // 在此可加入事件監聽 (例如重置遊戲等)
-        retryBtn.setOnAction(e -> {
+        retryBtn.setOnMouseClicked(e -> {
             if (onRetry != null) onRetry.run();
         });
-        menuBtn.setOnAction(e -> {
+        menuBtn.setOnMouseClicked(e -> {
             if (onReturnToMenu != null) onReturnToMenu.run();
         });
         
@@ -96,10 +95,11 @@ public class MissionResultUI {
 
         // 組裝面板
         mainPanel.getChildren().addAll(title, subTitle, statsBox, buttonBox);
-        uiRoot.getChildren().add(mainPanel);
+        uiRoot.getChildren().addAll(darkOverlay, mainPanel);
         
         // 預設為隱藏
         uiRoot.setOpacity(0);
+        uiRoot.setVisible(false);
         root.getChildren().add(uiRoot);
     }
 
@@ -120,28 +120,6 @@ public class MissionResultUI {
     public void updateResult(ScoreResult result) {
         subTitle.setText(result.getPlayerHp() <= 0 ? "SHIP LOST // RESULTS RECOVERED" : "GALACTIC HARMONY RESCUE REPORT");
         resultSequenceManager.start(result);
-    }
-
-    private Button createStyledButton(String text) {
-        Button btn = new Button(text);
-        btn.setFont(new Font("Consolas", 18));
-        btn.setStyle("-fx-background-color: transparent; -fx-text-fill: #00FFFF; -fx-border-color: #00FFFF; -fx-border-width: 2; -fx-padding: 10 30;");
-        
-        btn.setOnMouseEntered(e -> {
-            btn.setStyle("-fx-background-color: #00FFFF; -fx-text-fill: #000000; -fx-border-color: #00FFFF; -fx-border-width: 2; -fx-padding: 10 30;");
-            if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
-                com.binge.GameProject.audio.AudioSystem.getInstance().playSwitch();
-            }
-        });
-        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: transparent; -fx-text-fill: #00FFFF; -fx-border-color: #00FFFF; -fx-border-width: 2; -fx-padding: 10 30;"));
-        
-        btn.setOnMousePressed(e -> {
-            if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
-                com.binge.GameProject.audio.AudioSystem.getInstance().playButtonPress();
-            }
-        });
-        
-        return btn;
     }
 
     // 觸發顯示動畫
@@ -169,5 +147,46 @@ public class MissionResultUI {
 
     public void setOnReturnToMenu(Runnable onReturnToMenu) {
         this.onReturnToMenu = onReturnToMenu;
+    }
+
+    // 自訂的科幻按鈕，採用 StackPane 以免在縮放與全螢幕下與 JavaFX Button 事件衝突
+    private static class ResultButton extends StackPane {
+        private Rectangle bg;
+        private Text text;
+
+        public ResultButton(String label) {
+            setAlignment(Pos.CENTER);
+
+            bg = new Rectangle(240, 50);
+            bg.setFill(Color.TRANSPARENT);
+            bg.setStroke(Color.web("#00FFFF"));
+            bg.setStrokeWidth(2);
+
+            text = new Text(label);
+            text.setFont(new Font("Consolas", 18));
+            text.setFill(Color.web("#00FFFF"));
+
+            getChildren().addAll(bg, text);
+
+            setOnMouseEntered(e -> {
+                bg.setFill(Color.web("#00FFFF"));
+                text.setFill(Color.BLACK);
+                setCursor(javafx.scene.Cursor.HAND);
+                if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                    com.binge.GameProject.audio.AudioSystem.getInstance().playSwitch();
+                }
+            });
+
+            setOnMouseExited(e -> {
+                bg.setFill(Color.TRANSPARENT);
+                text.setFill(Color.web("#00FFFF"));
+            });
+
+            setOnMousePressed(e -> {
+                if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+                    com.binge.GameProject.audio.AudioSystem.getInstance().playButtonPress();
+                }
+            });
+        }
     }
 }
