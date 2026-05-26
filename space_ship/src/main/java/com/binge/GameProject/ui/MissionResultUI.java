@@ -133,6 +133,9 @@ public class MissionResultUI {
     }
     
     public void hide() {
+        if (resultSequenceManager != null) {
+            resultSequenceManager.stop();
+        }
         FadeTransition ft = new FadeTransition(Duration.seconds(0.5), uiRoot);
         ft.setToValue(0);
         ft.setOnFinished(e -> {

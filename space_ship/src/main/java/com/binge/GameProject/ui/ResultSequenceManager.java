@@ -16,6 +16,7 @@ public class ResultSequenceManager {
     private final VBox statsContainer;
     private final Text ratingText;
     private Timeline activeTimeline;
+    private PauseTransition activePause;
     private long lastTickNanos;
 
     public ResultSequenceManager(VBox statsContainer, Text ratingText) {
@@ -34,9 +35,9 @@ public class ResultSequenceManager {
 
     private void animateRow(ScoreResult result, int index) {
         if (index >= 7) {
-            PauseTransition pause = new PauseTransition(Duration.seconds(0.3));
-            pause.setOnFinished(e -> revealRating(result.getRating()));
-            pause.play();
+            activePause = new PauseTransition(Duration.seconds(0.3));
+            activePause.setOnFinished(e -> revealRating(result.getRating()));
+            activePause.play();
             return;
         }
 
@@ -119,6 +120,15 @@ public class ResultSequenceManager {
         ratingText.setOpacity(1);
         if (AudioSystem.getInstance() != null) {
             AudioSystem.getInstance().playRatingReveal(rating);
+        }
+    }
+
+    public void stop() {
+        if (activeTimeline != null) {
+            activeTimeline.stop();
+        }
+        if (activePause != null) {
+            activePause.stop();
         }
     }
 }
