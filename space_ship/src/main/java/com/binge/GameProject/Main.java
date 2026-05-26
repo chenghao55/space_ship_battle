@@ -33,6 +33,8 @@ public class Main extends Application {
     private MainMenuUI mainMenuUI;
     private PauseUI pauseUI;
     private Runnable updateScale;
+    private GameManager gameManager;
+    private SubScene worldSubScene;
 
     // start 方法是 JavaFX 應用程式開始執行的地方
     @Override
@@ -80,7 +82,7 @@ public class Main extends Application {
         // 建立一個專門用來放 3D 遊戲物件的容器 (例如飛船、星球)
         Group worldRoot = new Group();
         // SubScene 是子場景，用來獨立渲染 3D 世界，不會影響到 2D 的 UI
-        SubScene worldSubScene = new SubScene(worldRoot, WIDTH, HEIGHT, true, SceneAntialiasing.BALANCED);
+        this.worldSubScene = new SubScene(worldRoot, WIDTH, HEIGHT, true, SceneAntialiasing.BALANCED);
         worldSubScene.setFill(Color.web("#050510")); // 設定為深邃的宇宙顏色 (極深的藍黑色)
 
         // 建立一個專門用來放 2D UI 介面的容器 (例如速度表、警告文字)
@@ -105,7 +107,7 @@ public class Main extends Application {
 
         // 4. 遊戲邏輯與實體總管
         // GameManager 負責管理所有的飛船、星球以及物理更新
-        GameManager gameManager = new GameManager(worldRoot, cameraManager);
+        this.gameManager = new GameManager(worldRoot, cameraManager);
         
         // 5. 輸入系統
         // 將我們自己寫的 InputManager 綁定到主場景，這樣才能收到玩家的鍵盤按鍵
@@ -124,7 +126,7 @@ public class Main extends Application {
         
         // 7. 啟動遊戲主迴圈
         // GameLoop 是一個計時器，每秒會執行約 60 次來更新遊戲畫面與邏輯
-        GameLoop gameLoop = new GameLoop(gameManager, cameraManager, hudManager, missionResultUI, scene);
+        GameLoop gameLoop = new GameLoop(gameManager, cameraManager, hudManager, missionResultUI, scene, worldSubScene);
         
         // 設定點擊 Start Mission 後的動畫過場邏輯
         mainMenuUI.setOnStartMission(() -> {
@@ -136,6 +138,7 @@ public class Main extends Application {
             cameraManager.playStartTransition(() -> {
                 // 過場動畫結束，正式進入遊戲
                 gameManager.setCurrentState(com.binge.GameProject.engine.GameState.PLAYING);
+                forceHideCursor();
             });
         });
         
@@ -162,6 +165,7 @@ public class Main extends Application {
         pauseUI.setOnResume(() -> {
             pauseUI.hide();
             gameManager.resumeGame();
+            forceHideCursor();
         });
 
         pauseUI.setOnRestart(() -> {
@@ -184,6 +188,10 @@ public class Main extends Application {
                 AudioSystem.getInstance().playMenuMusic();
             }
         });
+
+        // 監聽滑鼠點擊與滑鼠移入事件以在遊戲中隱藏游標
+        scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> forceHideCursor());
+        scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_ENTERED, event -> forceHideCursor());
 
         // 監聽鍵盤事件以開啟或關閉暫停選單 (按下 ESC 或 P 鍵) 以及切換全螢幕 (F11 或 Alt+Enter)
         scene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
@@ -214,6 +222,20 @@ public class Main extends Application {
 
         // 8. 顯示視窗設定
         this.currentStage = primaryStage;
+        currentStage.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal) {
+                forceHideCursor();
+            } else {
+                // 失去焦點時自動暫停遊戲，並顯示暫停選單
+                if (gameManager != null && (gameManager.getCurrentState() == com.binge.GameProject.engine.GameState.PLAYING 
+                        || gameManager.getCurrentState() == com.binge.GameProject.engine.GameState.BULLET_TIME)) {
+                    gameManager.pauseGame();
+                    if (pauseUI != null) {
+                        pauseUI.show();
+                    }
+                }
+            }
+        });
         
         // 註冊選單的顯示模式切換回呼
         mainMenuUI.setOnDisplayModeChange(this::setDisplayMode);
@@ -248,6 +270,21 @@ public class Main extends Application {
             
             // 點擊關閉按鈕時徹底結束程式
             newStage.setOnCloseRequest(e -> System.exit(0));
+
+            newStage.focusedProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal) {
+                    forceHideCursor();
+                } else {
+                    // 失去焦點時自動暫停遊戲，並顯示暫停選單
+                    if (gameManager != null && (gameManager.getCurrentState() == com.binge.GameProject.engine.GameState.PLAYING 
+                            || gameManager.getCurrentState() == com.binge.GameProject.engine.GameState.BULLET_TIME)) {
+                        gameManager.pauseGame();
+                        if (pauseUI != null) {
+                            pauseUI.show();
+                        }
+                    }
+                }
+            });
 
             if (oldStage != null) {
                 oldStage.setScene(null);
@@ -320,10 +357,50 @@ public class Main extends Application {
         if (rootPane != null) {
             rootPane.requestFocus();
         }
+
+        // 重新切換顯示模式後，如果處於遊玩狀態，立即強制隱藏游標
+        if (gameManager != null) {
+            var state = gameManager.getCurrentState();
+            if (state == com.binge.GameProject.engine.GameState.PLAYING 
+                    || state == com.binge.GameProject.engine.GameState.STARTING_TRANSITION 
+                    || state == com.binge.GameProject.engine.GameState.ENDING_FREEZE 
+                    || state == com.binge.GameProject.engine.GameState.BULLET_TIME) {
+                scene.setCursor(javafx.scene.Cursor.DEFAULT);
+                scene.setCursor(javafx.scene.Cursor.NONE);
+                if (scene.getRoot() != null) {
+                    scene.getRoot().setCursor(javafx.scene.Cursor.DEFAULT);
+                    scene.getRoot().setCursor(javafx.scene.Cursor.NONE);
+                }
+                if (worldSubScene != null) {
+                    worldSubScene.setCursor(javafx.scene.Cursor.DEFAULT);
+                    worldSubScene.setCursor(javafx.scene.Cursor.NONE);
+                }
+            }
+        }
     }
 
     // Java 程式的標準進入點
     public static void main(String[] args) {
         launch(args); // 啟動 JavaFX 應用程式
+    }
+
+    private void forceHideCursor() {
+        if (gameManager == null) return;
+        var state = gameManager.getCurrentState();
+        if (state == com.binge.GameProject.engine.GameState.PLAYING 
+                || state == com.binge.GameProject.engine.GameState.STARTING_TRANSITION 
+                || state == com.binge.GameProject.engine.GameState.ENDING_FREEZE 
+                || state == com.binge.GameProject.engine.GameState.BULLET_TIME) {
+            scene.setCursor(javafx.scene.Cursor.DEFAULT);
+            scene.setCursor(javafx.scene.Cursor.NONE);
+            if (scene.getRoot() != null) {
+                scene.getRoot().setCursor(javafx.scene.Cursor.DEFAULT);
+                scene.getRoot().setCursor(javafx.scene.Cursor.NONE);
+            }
+            if (worldSubScene != null) {
+                worldSubScene.setCursor(javafx.scene.Cursor.DEFAULT);
+                worldSubScene.setCursor(javafx.scene.Cursor.NONE);
+            }
+        }
     }
 }
