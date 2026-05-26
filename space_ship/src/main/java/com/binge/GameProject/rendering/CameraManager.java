@@ -130,8 +130,8 @@ public class CameraManager {
         currentRoll += (targetRoll - currentRoll) * rollLerpSpeed * dt;
         rollRotateZ.setAngle(currentRoll);
 
-        // 4. 動態視野角 (Dynamic FOV) - Boost 時拉伸畫面增強速度感
-        double targetFOV = player.isBoosting() ? 95.0 : 60.0;
+        // 4. 動態視野角 (Dynamic FOV) - Boost 只做輕微拉伸，避免畫面縮小過度
+        double targetFOV = player.isBoosting() ? 70.0 : 60.0;
         double fovLerpSpeed = player.isBoosting() ? 5.0 : 3.0;
         currentFOV += (targetFOV - currentFOV) * fovLerpSpeed * dt;
         camera.setFieldOfView(currentFOV);

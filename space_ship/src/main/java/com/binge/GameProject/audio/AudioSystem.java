@@ -119,7 +119,7 @@ public class AudioSystem {
     public void updateIdolGroupVoices(List<IdolGroup> groups, Player player, double dt) {
         double loudest = 0.0;
         for (IdolGroup group : groups) {
-            Idol nearest = group.getNearestDetectableIdol(player);
+            Idol nearest = group.getNearestAvailableIdol(player);
             double volume = voiceController.calculateVolume(nearest, player);
             
             // 計算左右聲道平衡度 (Stereo Pan Balance)

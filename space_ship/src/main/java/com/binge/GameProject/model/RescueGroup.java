@@ -22,7 +22,7 @@ public class RescueGroup {
             Vector2D current = trailPositions.get(i);
             Vector2D target = i == 0 ? anchor : trailPositions.get(i - 1);
             double follow = Math.min(1.0, dt * 8.0);
-            double desiredGap = 58.0;
+            double desiredGap = 54.0;
             Vector2D diff = current.subtract(target);
             if (diff.magnitude() > desiredGap) {
                 Vector2D desired = target.add(diff.normalize().multiply(desiredGap));
@@ -48,7 +48,7 @@ public class RescueGroup {
     public List<Hitbox> getHitboxes() {
         List<Hitbox> hitboxes = new ArrayList<>();
         for (Vector2D position : trailPositions) {
-            hitboxes.add(new Hitbox(new Vector2D(position.x, position.y), 24));
+            hitboxes.add(new Hitbox(new Vector2D(position.x, position.y), 26));
         }
         return hitboxes;
     }
