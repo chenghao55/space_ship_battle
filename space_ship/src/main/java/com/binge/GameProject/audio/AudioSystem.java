@@ -28,6 +28,7 @@ public class AudioSystem {
     private AudioClip freezeGlitchSfx;
     private AudioClip enemyDestroySfx;
     private AudioClip smallExplosionSfx;
+    private AudioClip pickupSfx;
 
     // MediaPlayer 實例 (適用長背景音與環境音)
     private MediaPlayer menuMusicPlayer;
@@ -78,6 +79,7 @@ public class AudioSystem {
             freezeGlitchSfx = safeLoadClip("/sound_effects/sfx_freeze_glitch.mp3");
             enemyDestroySfx = firstAvailableClip("/sound_effects/sfx_enemy_destroy.wav", "/sound_effects/explosion.mp3");
             smallExplosionSfx = firstAvailableClip("/sound_effects/sfx_explosion_small.wav", "/sound_effects/explosion.mp3");
+            pickupSfx = safeLoadClip("/sound_effects/pickup.mp3");
 
             // 載入 MediaPlayer
             menuMusicPlayer = createLoopingPlayer("/sound_effects/background_scifi.mp3", 0.7);
@@ -291,6 +293,14 @@ public class AudioSystem {
 
     public void playHit() {
         if (hitSfx != null) hitSfx.play(masterVolume);
+    }
+
+    public void playPickup() {
+        if (pickupSfx != null) pickupSfx.play(masterVolume);
+    }
+
+    public AudioClip getPickupSfx() {
+        return pickupSfx;
     }
 
     public void playEndingImpact() {

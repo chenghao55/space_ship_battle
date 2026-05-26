@@ -47,6 +47,9 @@ public class RescueManager {
         totalRescuedCount++;
         lastEventText = "RESCUED: " + idol.getDisplayName();
         lastEventTimer = 2.0;
+        if (com.binge.GameProject.audio.AudioSystem.getInstance() != null) {
+            com.binge.GameProject.audio.AudioSystem.getInstance().playPickup();
+        }
     }
 
     public Idol loseLastRescued(Player player) {
