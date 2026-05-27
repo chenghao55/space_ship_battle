@@ -1,7 +1,7 @@
-# Galactic Harmony - Architecture.md
+# Kpop Universe - Architecture.md
 
 > 本文件是給開發者使用的 Class-Based 架構設計規格書。  
-> 目標：從最一開始的 `Inspiration.mdc` 與既有 `Architecture.md` 出發，保留太空漂移、行星引力、鏡頭、UI 架構，並新增 Galactic Harmony 的救援玩法、女團成員群集、HP 評級、永久流失、Ending Freeze、雙層雷達與音效防重疊。本版恢復飛船受行星引力與重力彈弓影響。
+> 目標：從最一開始的 `Inspiration.mdc` 與既有 `Architecture.md` 出發，保留太空漂移、行星引力、鏡頭、UI 架構，並新增 Kpop Universe 的救援玩法、女團成員群集、HP 評級、永久流失、Ending Freeze、雙層雷達與音效防重疊。本版恢復飛船受行星引力與重力彈弓影響。
 
 ---
 
@@ -20,7 +20,7 @@ GameManager
  ├── RadarSystem
  ├── AudioSystem
  ├── CameraManager
- ├── UIManager
+ ├── HUDManager / MainMenuUI / MissionResultUI / CreditsUI
  └── EntityManager
 ```
 
@@ -29,7 +29,7 @@ GameManager
 ```text
 玩家輸入
  ↓
-PlayerShip 推力 / Boost / 甩尾
+Player 推力 / Boost / 甩尾
  ↓
 PhysicsEngine 行星引力 / 重力彈弓 / 星體碰撞推出 / 邊界阻力
  ↓
@@ -43,7 +43,7 @@ RadarSystem 內圈危險 / 外圈 Idol 脈衝
  ↓
 AudioSystem 同團最近音源 / 多團混音 / 環境音淡出
  ↓
-UIManager 更新 HUD / 警告 / 結算
+HUD / Menu / Result / Credits UI 更新
  ↓
 CameraManager 停格演出、震動、FOV
  ↓
@@ -68,26 +68,25 @@ src/
 
     ├── model/
     │   ├── GameObject.java
-    │   ├── DynamicObject.java
-    │   ├── StaticObject.java
-    │   ├── PlayerShip.java
+    │   ├── Player.java
     │   ├── Planet.java
-    │   ├── Star.java
     │   ├── Idol.java
     │   ├── IdolState.java
     │   ├── IdolGroup.java
     │   ├── RescueGroup.java
     │   ├── Enemy.java
+    │   ├── MobileEnemy.java
     │   ├── EnemyView.java
     │   ├── Bullet.java
+    │   ├── BulletOwner.java
     │   ├── EnemyBullet.java
-    │   └── PlayerBullet.java
+    │   ├── PlayerBullet.java
+    │   ├── Projectile.java
+    │   └── OrbitalBase.java
 
     ├── physics/
     │   ├── Vector2D.java
     │   ├── PhysicsEngine.java
-    │   ├── CollisionUtil.java
-    │   ├── BoundarySystem.java
     │   └── Hitbox.java
 
     ├── gameplay/
@@ -100,29 +99,22 @@ src/
 
     ├── rendering/
     │   ├── CameraManager.java
+    │   ├── EnemyDeathExplosion.java
+    │   ├── ExplosionEffect.java
     │   ├── IdolBillboardView.java
     │   ├── LightSystem.java
-    │   ├── ParticleRenderer.java
-    │   ├── TrailEffect.java
-    │   ├── SparkEffect.java
-    │   ├── RescueEffect.java
-    │   ├── BackgroundParallax.java
-    │   └── FadeTransitionEffect.java
+    │   └── ParticleRenderer.java
 
     ├── ui/
-    │   ├── UIManager.java
     │   ├── HUDManager.java
     │   ├── RadarSystem.java
-    │   ├── TimerUI.java
-    │   ├── HeartUI.java
-    │   ├── BoostUI.java
-    │   ├── IdolPortraitUI.java
-    │   ├── SoundWaveUI.java
-    │   ├── WarningUI.java
-    │   ├── ProgressUI.java
     │   ├── MissionResultUI.java
     │   ├── CreditsUI.java
-    │   └── MainMenuUI.java
+    │   ├── ResultSequenceManager.java
+    │   ├── MainMenu.java
+    │   ├── MainMenuUI.java
+    │   ├── PauseUI.java
+    │   └── SciFiSlider.java
 
     ├── audio/
     │   ├── AudioSystem.java
@@ -134,7 +126,7 @@ src/
         ├── ResourceManager.java
         ├── TextureRegistry.java
         ├── GroupConfig.java
-        ├── MathUtil.java
+        ├── OBJImporter.java
         └── GameConfig.java
 ```
 
@@ -164,7 +156,7 @@ src/
 
 ### 責任
 
-掌控遊戲整體流程、GameState、勝利與失敗條件、60 秒倒數、邊界判定整合、Ending Freeze 切換。
+掌控遊戲整體流程、GameState、勝利與失敗條件、180 秒倒數、邊界判定整合、Ending Freeze 切換。
 
 ### GameState
 
@@ -188,8 +180,8 @@ enum GameState {
 class GameManager {
     GameState state;
 
-    double remainingTime;          // 60 秒倒數
-    double normalTimeLimit = 60.0;
+    double remainingTime;          // 180 秒倒數
+    double normalTimeLimit = 180.0;
 
     InputManager inputManager;
     TimeScaleController timeScaleController;
@@ -201,10 +193,9 @@ class GameManager {
     ScoreManager scoreManager;
     LevelManager levelManager;
 
-    RadarSystem radarSystem;
     AudioSystem audioSystem;
     CameraManager cameraManager;
-    UIManager uiManager;
+    // HUD / menu / result / credits UI are created in Main.java
 }
 ```
 
@@ -279,7 +270,7 @@ class TimeScaleController {
 
 ---
 
-## 六、Class: PlayerShip
+## 六、Class: Player
 
 ### 責任
 
@@ -288,7 +279,7 @@ class TimeScaleController {
 ### 主要欄位
 
 ```java
-class PlayerShip extends DynamicObject {
+class Player extends GameObject {
     int hp = 5;
     int maxHp = 5;
 
@@ -311,7 +302,7 @@ class PlayerShip extends DynamicObject {
 ```text
 WASD / 方向鍵 → 移動方向
 Shift → Boost
-Space / 滑鼠左鍵 → 射擊
+E / 滑鼠左鍵 → 射擊
 ```
 
 ### 甩尾物理
@@ -333,7 +324,7 @@ Boost 的 Camera FOV 只做輕微放大，讓玩家感覺速度上升但不造�
 玩家受擊與救援都使用多段 Hitbox：
 
 ```text
-PlayerShip 本體 Hitbox
+Player 本體 Hitbox
 + RescueGroup 每位 Idol 的 Hitbox
 ```
 
@@ -369,7 +360,7 @@ enum IdolState {
 ### Class: Idol
 
 ```java
-class Idol extends StaticObject {
+class Idol extends GameObject {
     String idolId;
     String groupId;
     String displayName;
@@ -420,7 +411,7 @@ orbitAngle += orbitSpeed * dt
 
 1. Idol 的 JavaFX View 必須改為直立式人物紙片人 / 全身立牌，不再使用 Sphere、厚重橢球、普通卡牌或 UI 卡片。
 2. AVAILABLE 是唯一的救援前狀態；聲音與雷達可依距離計算，但不可控制 Idol 是否顯示。
-3. 救援成功由 `PlayerShip.getRescueHitboxes()` 與 Idol 救援吸引半徑觸發。
+3. 救援成功由 `Player.getRescueHitboxes()` 與 Idol 救援吸引半徑觸發。
 4. AVAILABLE 狀態從開局就顯示完整人物 panel，group logo badge 只作為輔助標記。
 5. 每個 Idol 使用 `IdolPic/{memberPortraitPrefix}{memberIndex}.png|jpg|jpeg` 的個別人物圖片。
 6. 若個別人物圖片不存在，fallback 到該 group logo；若 group logo 不存在，使用 placeholder。
@@ -457,7 +448,7 @@ class IdolGroup {
     int memberCount;
     List<Idol> idols;
 
-    Idol getNearestAvailableIdol(PlayerShip player);
+    Idol getNearestAvailableIdol(Player player);
 }
 ```
 
@@ -509,7 +500,7 @@ class RescueGroup {
 行星 3D 視覺、女團成員管理、引力彈弓、碰撞推出、外圈公轉與敵人配置。
 
 ```java
-class Planet extends StaticObject {
+class Planet extends GameObject {
     String groupId;
     List<Idol> idols;
 
@@ -530,7 +521,7 @@ class Planet extends StaticObject {
 1. 每個 Planet 對應一個女團。
 2. Planet 內部持有 `List<Idol>`，LevelManager 建立每位 Idol 後必須呼叫 `planet.addIdol(idol)`。
 3. 初始化時在行星軌道或周邊星塵中生成多名 Idol。
-4. 對 PlayerShip 施加引力、切線加速與重力彈弓效果。
+4. 對 Player 施加引力、切線加速與重力彈弓效果。
 5. 玩家貼近時施加碰撞推出力場。
 6. 玩家靠近危險區時通知 UI 顯示警告。
 7. Bullet 撞到 Planet 時通知 CombatManager 銷毀 Bullet。
@@ -551,14 +542,14 @@ planet.y = star.y + sin(orbitAngle) * orbitRadius
 5. Idol 的軌道位置以母行星最新位置為中心，因此會跟著公轉中的行星移動。
 6. Idol 軌道半徑中的「行星表面外距離」改為上一版目前距離的 1/2，也就是 `orbitRadius = planet.radius + surfaceClearance * 0.5` 的概念。
 
-### 外圈新增行星
+### 行星配置
 
-`LevelManager` 必須在既有行星外再新增 4 顆外圈行星：
+`LevelManager` 目前建立 1 顆中央恆星與 8 顆女團行星：
 
-1. 每顆新行星半徑彼此不同，且都大於既有一般行星。
-2. 每顆新行星的公轉半徑都大於既有一般行星，且所有行星都使用差異明顯的多層軌道半徑。
-3. 顏色需與既有行星保持明顯差異，避免同色系混淆。
-4. 每顆新行星都建立一個 `IdolGroup`、多名軌道 Idol、固定 photo 表皮與多座 Enemy 守衛。
+1. 8 顆女團行星由 `GroupConfig.defaults()` 決定，依序為 nmixx、itzy、ive、aespa、twice、lesserafim、babymonster、blackpink。
+2. 每顆女團行星半徑、質量、顏色、初始角度與公轉半徑皆不同，公轉半徑約為 5600 到 14000。
+3. 每顆女團行星都建立一個 `IdolGroup`、多名軌道 Idol、固定 photo logo 表皮與多座 Enemy 守衛。
+4. 中央恆星是暖橘色、不透明且高亮的 `Planet`。
 
 ### 行星公轉避讓
 
@@ -595,7 +586,7 @@ planet.y = star.y + sin(orbitAngle) * orbitRadius
 ### Class: Enemy
 
 ```java
-class Enemy extends StaticObject {
+class Enemy extends GameObject {
     int hp = 3;
     double aggroRadius;
     double shootCooldown;
@@ -622,12 +613,12 @@ class Enemy extends StaticObject {
 9. 砲台型敵人數量調整為上一版目前配置的一半；展示版 8 顆女團行星合計約 12 座砲台，分散成每顆 1~2 座。
 10. 新增移動型敵人，使用和砲台相同的 HP、預判射擊、受擊與爆炸邏輯。
 11. 移動型敵人的核心為綠色，定位為快速攔截單位。
-12. 移動型敵人的偵測 / 攻擊半徑為上一版移動型敵人的 3 倍；進入範圍後快速飛向玩家目前視角 / 機頭方向前方的攔截點。
+12. 移動型敵人的偵測 / 攻擊半徑目前為砲台型敵人射程的 6 倍；進入範圍後快速飛向玩家目前視角 / 機頭方向前方的攔截點。
 13. 移動型敵人靠近玩家後維持 `preferredDistanceFromPlayer` 的前方壓迫距離，不直接貼臉；若玩家轉向或拉開距離會重新追蹤新的前方攔截點。
 14. 移動型敵人射擊頻率為前一版移動型敵人的 1.5 倍，等價於射擊冷卻除以 1.5。
 15. 移動型敵人數量為前一版的 4 倍，LevelManager 必須分散擺放到不同星球外側與不同角度。
 14. 敵人位置必須大幅散開，不可在每顆行星旁密集擠成小團。
-15. 砲台型與移動型敵人的程序化模型視覺尺寸都要改為上一版目前大小的約 2/3，包含核心、環、砲管與 muzzle flash；命中半徑需同步縮回。
+15. 砲台型與移動型敵人的程序化模型目前使用 `EnemyView.MODEL_SCALE = 4.0 / 3.0`，包含核心、環、砲管與 muzzle flash；碰撞半徑由 `CombatManager` 的常數管理。
 16. HP <= 0 後立刻關閉射擊、碰撞與被攻擊判定，但保留死亡爆炸特效直到播放完畢。
 
 ### EnemyView
@@ -673,7 +664,7 @@ public class EnemyDeathExplosion {
 ### Class: Bullet
 
 ```java
-abstract class Bullet extends DynamicObject {
+abstract class Bullet extends GameObject {
     double damage;
     double lifeTime;
     BulletOwner owner;
@@ -834,32 +825,29 @@ RadarSystem 暫時提高脈衝強度
 
 ---
 
-## 十三、Class: UIManager / AudioSystem
+## 十三、HUD / Screen UI / AudioSystem
 
-## UIManager
+## HUD 與畫面 UI
 
 ### 責任
 
-管理所有 UI 元件。
+目前沒有獨立 `UIManager.java`；UI 由 `Main.java` 建立並串接多個具體 UI 類別。
 
 ```text
-TimerUI
-HeartUI
-BoostUI
-RadarSystem / RadarView
-SoundWaveUI
-IdolPortraitUI
-WarningUI
-ProgressUI
+HUDManager
+RadarSystem
 MissionResultUI
 ResultSequenceManager
 MainMenuUI
+PauseUI
+CreditsUI
+SciFiSlider
 ```
 
 ### 必須顯示
 
 1. HP：滿血 5 顆心。
-2. 60 秒倒數。
+2. 180 秒倒數。
 3. Boost 條。
 4. 已救援人數 / 總人數。
 5. 內圈危險雷達。
@@ -903,7 +891,7 @@ void start(ScoreResult scoreResult);
 ```java
 class AudioSystem {
     void updateAmbient(double nearestIdolVolume);
-    void updateIdolGroupVoices(List<IdolGroup> groups, PlayerShip player);
+    void updateIdolGroupVoices(List<IdolGroup> groups, Player player);
     void playSfx(String id);
     void playLostVoice(Idol idol);
     void playHintSound(Vector2D direction);
@@ -1030,8 +1018,8 @@ volume = 1.0 - distance / radarSenseRange
 
 | 原架構位置 | 新增內容 |
 |---|---|
-| `GameManager` | 60 秒倒數、HP 失敗、Ending Freeze |
-| `PlayerShip` | 5 顆心、Snake Hitbox、隊伍受擊 |
+| `GameManager` | 180 秒倒數、HP 失敗、Ending Freeze |
+| `Player` | 5 顆心、Snake Hitbox、隊伍受擊 |
 | `Planet` | `List<Idol>`、女團節點管理 |
 | `GameObject` 繼承樹 | `Idol`, `IdolGroup`, `RescueGroup`, `Bullet` |
 | `PhysicsEngine` | 邊界阻力、行星排斥力、隊伍 Hitbox |
@@ -1066,14 +1054,10 @@ engine/TimeScaleController.java
 
 physics/Vector2D.java
 physics/PhysicsEngine.java
-physics/CollisionUtil.java
-physics/BoundarySystem.java
 physics/Hitbox.java
 
 model/GameObject.java
-model/DynamicObject.java
-model/StaticObject.java
-model/PlayerShip.java
+model/Player.java
 model/Planet.java
 
 utils/GameConfig.java
@@ -1089,10 +1073,10 @@ utils/GameConfig.java
 ### 從 Architecture.md 要改的部分
 
 1. `GameState` 新增 `ENDING_FREEZE`、`GAME_OVER`，`BULLET_TIME` 僅保留舊流程相容。
-2. `GameManager` 新增 60 秒倒數與勝敗流程。
-3. `PlayerShip` 新增 HP = 5、Boost、driftIntensity。
+2. `GameManager` 新增 180 秒倒數與勝敗流程。
+3. `Player` 新增 HP = 5、Boost、driftIntensity。
 4. `PhysicsEngine` 支援 Player + RescueGroup 的多段 Hitbox。
-5. `BoundarySystem` 顯示脫離航道警告並給阻力。
+5. `GameManager.applyBoundarySystem()` 顯示脫離航道警告並給阻力。
 6. `TimeScaleController` 可保留舊介面，但新版結算前不啟用 Bullet Time。
 
 ### A 的具體任務
@@ -1103,13 +1087,13 @@ utils/GameConfig.java
 - 確保 `MAIN_MENU → PLAYING → BULLET_TIME / MISSION_CLEAR / GAME_OVER` 可切換。
 - `GameLoop` 每幀呼叫 `GameManager.update(dt)`。
 
-#### A-2 60 秒倒數
+#### A-2 180 秒倒數
 
 - 在 `GameManager` 或 `MissionManager` 中維護 `remainingTime`。
-- 遊戲開始時設定 60 秒。
+- 遊戲開始時設定 180 秒。
 - 時間歸零時進入結算流程。
 
-#### A-3 PlayerShip
+#### A-3 Player
 
 - 實作 WASD / 方向鍵控制。
 - 實作 Shift Boost。
@@ -1122,7 +1106,7 @@ utils/GameConfig.java
 #### A-4 Snake Hitbox 支援
 
 - 建立 `Hitbox.java`。
-- `PlayerShip.getFullBodyHitboxes()` 回傳：
+- `Player.getFullBodyHitboxes()` 回傳：
   - 飛船本體 Hitbox
   - RescueGroup 的所有 Hitbox
 - 提供給 B 的 `CombatManager` 與 `RescueManager` 使用。
@@ -1140,7 +1124,7 @@ utils/GameConfig.java
 - 實作排斥力場。
 - 實作非恆星行星慢速公轉，且每顆公轉半徑都比目前版本更大並有明顯差異。
 - 實作子彈撞行星的碰撞查詢接口。
-- 實作 `BoundarySystem`。
+- 實作 `GameManager.applyBoundarySystem()`。
 
 #### A-6 Ending Freeze
 
@@ -1151,7 +1135,7 @@ utils/GameConfig.java
 ### A 需要提供給 B / C 的接口
 
 ```java
-PlayerShip getPlayer();
+Player getPlayer();
 List<Planet> getPlanets();
 double getRemainingTime();
 GameState getGameState();
@@ -1209,7 +1193,7 @@ model/PlayerBullet.java
 #### B-1 LevelManager
 
 - 生成多顆行星。
-- 新增 4 顆外圈行星；它們半徑彼此不同、都比既有一般行星大，公轉軌道半徑也都大於既有行星。
+- 建立 8 顆女團行星；它們半徑、質量、顏色、初始角度與公轉半徑彼此不同，並由 `GroupConfig.defaults()` 綁定女團資料。
 - 所有行星初始角度必須盡量均勻分散環繞恆星，避免隨機靠太近或集中在同一側。
 - 每顆行星建立一個 `IdolGroup`。
 - 每個 `IdolGroup` 生成多名環繞行星的 `Idol`，不得把 Idol 放在行星內部。
@@ -1340,19 +1324,14 @@ C 負責玩家看見與聽見的所有回饋：HUD、雷達、聲音、結算、
 ### 主要負責檔案
 
 ```text
-ui/UIManager.java
 ui/HUDManager.java
 ui/RadarSystem.java
-ui/TimerUI.java
-ui/HeartUI.java
-ui/BoostUI.java
-ui/IdolPortraitUI.java
-ui/SoundWaveUI.java
-ui/WarningUI.java
-ui/ProgressUI.java
 ui/MissionResultUI.java
 ui/CreditsUI.java
 ui/MainMenuUI.java
+ui/PauseUI.java
+ui/ResultSequenceManager.java
+ui/SciFiSlider.java
 
 audio/AudioSystem.java
 audio/SoundSource.java
@@ -1360,15 +1339,14 @@ audio/IdolVoiceController.java
 audio/MusicMixer.java
 
 rendering/CameraManager.java
+rendering/EnemyDeathExplosion.java
+rendering/ExplosionEffect.java
+rendering/IdolBillboardView.java
 rendering/LightSystem.java
 rendering/ParticleRenderer.java
-rendering/TrailEffect.java
-rendering/SparkEffect.java
-rendering/RescueEffect.java
-rendering/BackgroundParallax.java
-rendering/FadeTransitionEffect.java
 
 utils/ResourceManager.java
+utils/TextureRegistry.java
 ```
 
 ### 從 Inspiration.mdc 要改的部分
@@ -1388,19 +1366,19 @@ utils/ResourceManager.java
 
 ### C 的具體任務
 
-#### C-1 UIManager / HUD
+#### C-1 HUD / Screen UI
 
 整合並顯示：
 
 - HP 5 顆心。
-- 60 秒倒數。
+- 180 秒倒數。
 - Boost 條。
 - 已救援人數 / 原始總人數。
 - 內圈危險雷達。
 - 外圈 Idol 脈衝雷達。
 - 聲波視覺化。
 - Idol 頭像列。
-- WarningUI。
+- HUDManager warning text。
 - MissionResultUI。
 - CreditsUI。
 
@@ -1425,7 +1403,7 @@ Credits 內容必須顯示：
 Credits
 
 Project Title:
-K-pop Universe
+Kpop Universe
 
 Development Team:
 Deacon
@@ -1473,19 +1451,19 @@ All rights belong to their respective owners.
 - Idol LOST 時播放「啊啊啊啊~~~」。
 - 太久找不到 Idol 時播放提示音。
 
-#### C-4 SoundWaveUI
+#### C-4 HUD Sound Wave
 
 - 顯示主要聲源方向。
 - 顯示聲源強度。
 - 若多女團同時發聲，可顯示多條波或最強波。
 
-#### C-5 IdolPortraitUI
+#### C-5 HUD Idol Portraits
 
 - 救援成功時新增頭像。
 - Idol 唱歌時頭像發光。
 - Idol LOST 時頭像閃爍、變暗或消失。
 
-#### C-6 WarningUI
+#### C-6 HUD Warnings
 
 顯示：
 
@@ -1579,15 +1557,15 @@ feature/c-result-ui-effects
 
 ### Phase 1：保留原飛行雛型，整理底層
 
-- A：GameLoop、GameManager、PlayerShip、Physics。
+- A：GameLoop、GameManager、Player、Physics。
 - B：建立 Idol / IdolGroup / LevelManager 的資料雛型。
-- C：建立 TimerUI、HeartUI、BoostUI。
+- C：建立 HUDManager 的 HP、時間、Boost 顯示。
 
 ### Phase 2：救援主玩法
 
 - A：提供 Hitbox 與 Player position。
 - B：完成 Idol 偵測、救援、RescueGroup。
-- C：完成 IdolPortraitUI 與基本救援特效。
+- C：完成 HUDManager 的 Idol portrait 列與基本救援特效。
 
 ### Phase 3：敵人與懲罰
 
@@ -1599,7 +1577,7 @@ feature/c-result-ui-effects
 
 - A：提供玩家方向、速度、邊界狀態。
 - B：提供 IdolGroup、敵人、子彈資料。
-- C：完成雙層雷達、Audio Overlap Fix、SoundWaveUI。
+- C：完成雙層雷達、Audio Overlap Fix、HUD sound wave。
 
 ### Phase 5：結算與展示打磨
 
@@ -1614,7 +1592,7 @@ feature/c-result-ui-effects
 必須完成：
 
 1. 飛船可移動、可 Boost。
-2. 60 秒倒數。
+2. 180 秒倒數。
 3. HP 5 顆心。
 4. 多顆星球與多名 Idol。
 5. Idol 開局可見，雷達與音樂只作距離提示。

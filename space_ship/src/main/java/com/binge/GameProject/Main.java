@@ -277,7 +277,7 @@ public class Main extends Application {
                 newStage.initStyle(javafx.stage.StageStyle.UNDECORATED);
             }
             
-            newStage.setTitle("Galactic Harmony");
+            newStage.setTitle("Kpop Universe");
             newStage.setResizable(true);
             newStage.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
             newStage.setFullScreenExitHint("");

@@ -47,7 +47,7 @@ public class CreditsUI {
 
         content.getChildren().addAll(
                 title,
-                section("Project Title:", "K-pop Universe"),
+                section("Project Title:", "Kpop Universe"),
                 section("Development Team:", "Deacon\nIris\nRyan"),
                 section("Contribution Statement:",
                         "This project was jointly designed, developed, and refined by all team members.\n"

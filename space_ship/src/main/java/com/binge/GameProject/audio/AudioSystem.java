@@ -245,7 +245,7 @@ public class AudioSystem {
         }
     }
 
-    // 處理 60 秒太空無聲環境音
+    // 處理任務中的太空環境音
     private void updateSilenceTimer(double loudestVolume, double dt) {
         if (scifiHumPlayer == null) return;
 

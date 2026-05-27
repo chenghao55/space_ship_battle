@@ -40,7 +40,7 @@ public class MainMenuUI {
         menuPanel.setAlignment(Pos.CENTER);
         
         // 標題 (Title)
-        Text title = new Text("K-pop Universe");
+        Text title = new Text("Kpop Universe");
         title.setFont(new Font("Consolas", 90));
         title.setFill(Color.web("#ffffff"));
         DropShadow titleGlow = new DropShadow(40, Color.web("#00ffff"));
