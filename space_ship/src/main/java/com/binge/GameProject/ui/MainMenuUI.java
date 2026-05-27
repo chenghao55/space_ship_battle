@@ -21,6 +21,7 @@ public class MainMenuUI {
     private VBox settingsPanel;
     
     private Runnable onStartMission;
+    private Runnable onCredits;
     
     private MenuButton btnDisplayMode;
     private DisplayMode currentDisplayMode = DisplayMode.WINDOWED;
@@ -70,6 +71,11 @@ public class MainMenuUI {
         btnSettings.setOnMouseClicked(e -> showSettings());
         
         MenuButton btnCredits = new MenuButton("CREDITS");
+        btnCredits.setOnMouseClicked(e -> {
+            if (onCredits != null) {
+                onCredits.run();
+            }
+        });
         
         MenuButton btnExit = new MenuButton("EXIT SYSTEM");
         btnExit.setOnMouseClicked(e -> System.exit(0));
@@ -120,7 +126,6 @@ public class MainMenuUI {
         settingsPanel.getChildren().addAll(
             settingsTitle,
             sliderVolume,
-            new Text("GRAPHICS: CINEMATIC"),
             btnDisplayMode,
             btnBack
         );
@@ -146,6 +151,10 @@ public class MainMenuUI {
     public void setOnStartMission(Runnable callback) {
         this.onStartMission = callback;
     }
+
+    public void setOnCredits(Runnable callback) {
+        this.onCredits = callback;
+    }
     
     public void fadeOutAndHide() {
         FadeTransition ft = new FadeTransition(Duration.seconds(1.5), mainContainer);
@@ -160,6 +169,11 @@ public class MainMenuUI {
         FadeTransition ft = new FadeTransition(Duration.seconds(1.5), mainContainer);
         ft.setToValue(1.0);
         ft.play();
+    }
+
+    public void hideImmediately() {
+        mainContainer.setOpacity(0.0);
+        mainContainer.setVisible(false);
     }
     
     public void setOnDisplayModeChange(java.util.function.Consumer<DisplayMode> callback) {

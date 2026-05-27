@@ -89,6 +89,7 @@ totalScore clamp 0..100
 
 ```text
 主選單
+  ├─ Credits → 獨立 Credits Screen，可用 Back 或 ESC 回主選單
   ↓
 開始任務
   ↓
@@ -468,8 +469,42 @@ HUD 必須清楚顯示：
 | 警告提示 | 顯示脫離航道、Boost 不足、危險接近 |
 | 即時進度提示 | 救援成功或流失時高光閃爍 |
 | 結算畫面 | 顯示救援人數、剩餘 HP、最終評級 |
+| Credits Screen | 顯示製作團隊、工具與素材聲明，可 Back / ESC 回主選單 |
 
 底部已救援成員顯示牌要支援大量成員：每 10 個成員為一排，超過 10 個後往上新增一排堆疊。每張底部救援牌放大為目前尺寸的 3 倍，讓左下角牌子圖示更容易辨識。
+
+Settings 畫面只保留可操作項目：音量、螢幕模式與返回主選單。不要顯示無法操作的靜態 `GRAPHICS: CINEMATIC` 文字，避免玩家誤以為它是可調整選項。
+
+### Credits Screen
+
+主選單需要提供 `CREDITS` 按鈕。點擊後切換到獨立 Credits Screen，風格維持 K-pop 太空科幻：深色星空背景、淡淡星點、掃描線、霓虹發光邊框、白 / 青 / 淡藍 / 粉紫文字與輕微 glow。畫面必須清楚顯示：
+
+```text
+Credits
+
+Project Title:
+K-pop Universe
+
+Development Team:
+Deacon
+Iris
+Ryan
+
+Contribution Statement:
+This project was jointly designed, developed, and refined by all team members.
+All members contributed equally to the final production of the game.
+
+Tools:
+JavaFX
+IntelliJ IDEA
+GitHub
+
+Assets:
+Character images, group logos, sound effects, and music are used for educational and non-commercial course project purposes only.
+All rights belong to their respective owners.
+```
+
+Credits Screen 需要有 `BACK` 按鈕，點擊後回主選單；在 Credits Screen 按下 ESC 也必須回主選單。
 
 ---
 

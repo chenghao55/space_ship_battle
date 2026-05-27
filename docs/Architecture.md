@@ -121,6 +121,7 @@ src/
     │   ├── WarningUI.java
     │   ├── ProgressUI.java
     │   ├── MissionResultUI.java
+    │   ├── CreditsUI.java
     │   └── MainMenuUI.java
 
     ├── audio/
@@ -170,6 +171,7 @@ src/
 ```java
 enum GameState {
     MAIN_MENU,
+    CREDITS,
     STARTING_TRANSITION,
     PLAYING,
     ENDING_FREEZE,
@@ -1349,6 +1351,7 @@ ui/SoundWaveUI.java
 ui/WarningUI.java
 ui/ProgressUI.java
 ui/MissionResultUI.java
+ui/CreditsUI.java
 ui/MainMenuUI.java
 
 audio/AudioSystem.java
@@ -1399,6 +1402,7 @@ utils/ResourceManager.java
 - Idol 頭像列。
 - WarningUI。
 - MissionResultUI。
+- CreditsUI。
 
 底部 Idol 頭像列規則：
 
@@ -1408,6 +1412,41 @@ utils/ResourceManager.java
 第 21 個開始往上新增第三排
 每張底部救援牌尺寸放大為目前 HUD 牌子尺寸的 3 倍
 ```
+
+Settings panel 只保留實際可操作的 `VOLUME`、`SCREEN` 與 `BACK TO MENU`。不得顯示靜態的 `GRAPHICS: CINEMATIC` 文案，避免形成不可互動的假設定項。
+
+#### C-1a Credits Screen
+
+`MainMenuUI` 需要提供 `CREDITS` 按鈕，點擊後讓 `Main` / `GameManager` 切換到 `GameState.CREDITS` 並顯示獨立 `CreditsUI`。Credits 畫面使用 K-pop 太空科幻視覺：深色星空背景、淡淡星點、掃描線、霓虹發光邊框、白 / 青 / 淡藍 / 粉紫文字與輕微 glow。
+
+Credits 內容必須顯示：
+
+```text
+Credits
+
+Project Title:
+K-pop Universe
+
+Development Team:
+Deacon
+Iris
+Ryan
+
+Contribution Statement:
+This project was jointly designed, developed, and refined by all team members.
+All members contributed equally to the final production of the game.
+
+Tools:
+JavaFX
+IntelliJ IDEA
+GitHub
+
+Assets:
+Character images, group logos, sound effects, and music are used for educational and non-commercial course project purposes only.
+All rights belong to their respective owners.
+```
+
+`CreditsUI` 必須提供 `BACK` 按鈕，點擊後回到 `MAIN_MENU` 並重新顯示 `MainMenuUI`。若目前狀態為 `CREDITS` 且玩家按下 ESC，也必須隱藏 Credits 並回主選單。
 
 #### C-2 RadarSystem
 

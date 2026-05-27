@@ -6,6 +6,7 @@ import com.binge.GameProject.engine.InputManager;
 import com.binge.GameProject.rendering.CameraManager;
 import com.binge.GameProject.rendering.LightSystem;
 import com.binge.GameProject.rendering.ParticleRenderer;
+import com.binge.GameProject.ui.CreditsUI;
 import com.binge.GameProject.ui.HUDManager;
 import com.binge.GameProject.ui.MainMenuUI;
 import com.binge.GameProject.ui.MissionResultUI;
@@ -31,6 +32,7 @@ public class Main extends Application {
     private Scene scene;
     private javafx.scene.layout.Pane rootPane;
     private MainMenuUI mainMenuUI;
+    private CreditsUI creditsUI;
     private PauseUI pauseUI;
     private Runnable updateScale;
     private GameManager gameManager;
@@ -117,6 +119,7 @@ public class Main extends Application {
         HUDManager hudManager = new HUDManager(uiRoot);
         MissionResultUI missionResultUI = new MissionResultUI(uiRoot, WIDTH, HEIGHT);
         this.mainMenuUI = new MainMenuUI(uiRoot, WIDTH, HEIGHT);
+        this.creditsUI = new CreditsUI(uiRoot, WIDTH, HEIGHT);
         this.pauseUI = new PauseUI(uiRoot, WIDTH, HEIGHT);
         pauseUI.setOnDisplayModeChange(this::setDisplayMode);
         
@@ -141,6 +144,14 @@ public class Main extends Application {
                 forceHideCursor();
             });
         });
+
+        mainMenuUI.setOnCredits(() -> {
+            gameManager.setCurrentState(com.binge.GameProject.engine.GameState.CREDITS);
+            mainMenuUI.hideImmediately();
+            creditsUI.show();
+        });
+
+        creditsUI.setOnBack(() -> returnFromCredits());
         
         // 設定任務結算畫面的按鈕邏輯
         missionResultUI.setOnRetry(() -> {
@@ -204,6 +215,9 @@ public class Main extends Application {
                 } else if (state == com.binge.GameProject.engine.GameState.PAUSED) {
                     pauseUI.hide();
                     gameManager.resumeGame();
+                } else if (state == com.binge.GameProject.engine.GameState.CREDITS
+                        && event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                    returnFromCredits();
                 }
             } else if (event.getCode() == javafx.scene.input.KeyCode.F11 || (event.getCode() == javafx.scene.input.KeyCode.ENTER && event.isAltDown())) {
                 if (currentMode == DisplayMode.BORDERLESS_WINDOWED) {
@@ -401,6 +415,18 @@ public class Main extends Application {
                 worldSubScene.setCursor(javafx.scene.Cursor.DEFAULT);
                 worldSubScene.setCursor(javafx.scene.Cursor.NONE);
             }
+        }
+    }
+
+    private void returnFromCredits() {
+        if (creditsUI != null) {
+            creditsUI.hide();
+        }
+        if (gameManager != null) {
+            gameManager.setCurrentState(com.binge.GameProject.engine.GameState.MAIN_MENU);
+        }
+        if (mainMenuUI != null) {
+            mainMenuUI.fadeInAndShow();
         }
     }
 }

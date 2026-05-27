@@ -70,7 +70,7 @@ public class GameManager {
         if (dt > 0.05) dt = 0.05;
         flushObjectQueues();
 
-        if (currentState == GameState.MAIN_MENU || currentState == GameState.STARTING_TRANSITION
+        if (currentState == GameState.MAIN_MENU || currentState == GameState.CREDITS || currentState == GameState.STARTING_TRANSITION
                 || currentState == GameState.MISSION_CLEAR || currentState == GameState.PAUSED) {
             updateVisualOnly(dt);
             return;

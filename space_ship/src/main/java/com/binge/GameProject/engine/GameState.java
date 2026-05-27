@@ -2,6 +2,7 @@ package com.binge.GameProject.engine;
 
 public enum GameState {
     MAIN_MENU,          // 主選單畫面
+    CREDITS,            // 製作名單畫面
     STARTING_TRANSITION,// 遊戲啟動過場動畫 (鏡頭推進)
     PLAYING,            // 正常遊玩中
     ENDING_FREEZE,      // 最後救援後 0.15 秒停格
