@@ -40,7 +40,7 @@ public class MissionResultUI {
         mainPanel.setAlignment(Pos.CENTER);
 
         // 標題
-        Text title = new Text("MISSION COMPLETE");
+        Text title = new Text("MISSION END");
         title.setFont(new Font("Consolas", 72));
         title.setFill(Color.web("#00FFFF"));
         
@@ -118,7 +118,7 @@ public class MissionResultUI {
     }
 
     public void updateResult(ScoreResult result) {
-        subTitle.setText(result.getPlayerHp() <= 0 ? "SHIP LOST // RESULTS RECOVERED" : "GALACTIC HARMONY RESCUE REPORT");
+        subTitle.setText(result.getPlayerHp() <= 0 ? "RESULTS RECOVERED" : "GALACTIC HARMONY RESCUE REPORT");
         resultSequenceManager.start(result);
     }
 
