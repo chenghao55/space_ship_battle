@@ -21,7 +21,7 @@ public class Player extends GameObject {
     private double brakeFactor = 0.95; // 煞車力道 (每幀保留的速度比例)
 
     private double rotationAngle = 0; // 飛船目前的面向角度 (0度代表朝向 +Z 軸)
-    private double rotationSpeed = 150.0; // 飛船轉向速度 (提升三倍)
+    private double rotationSpeed = 75.0; // 飛船轉向速度
     private Rotate rotateTransform;
 
     private double fireCooldown = 0.0; // 射擊冷卻計時器

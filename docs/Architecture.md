@@ -319,6 +319,7 @@ Space / 滑鼠左鍵 → 射擊
 飛船視覺方向：平滑朝 velocity 轉動
 大角度轉向：提高 driftIntensity
 滑鼠移動不得影響飛船左右方向；轉向只由鍵盤方向輸入、速度方向與物理狀態決定，滑鼠左鍵僅作射擊輸入。
+A / D 的鍵盤轉向角速度為上一版目前值的一半，降低瞬間旋轉量並保留太空漂移慣性。
 Boost 或 driftIntensity 高：啟動尾翼殘影
 Boost 的 Camera FOV 只做輕微放大，讓玩家感覺速度上升但不造成明顯畫面縮小或視野跳動。
 按住 W 推進時，若速度低於最低巡航速度，物理層會把速度補到最低巡航速度。
@@ -415,7 +416,7 @@ orbitAngle += orbitSpeed * dt
 
 展示版實作要求：
 
-1. Idol 的 JavaFX View 必須改為直立式 capsule billboard / hologram panel，不再使用 Sphere 或厚重橢球。
+1. Idol 的 JavaFX View 必須改為直立式人物紙片人 / 全身立牌，不再使用 Sphere、厚重橢球、普通卡牌或 UI 卡片。
 2. AVAILABLE 是唯一的救援前狀態；聲音與雷達可依距離計算，但不可控制 Idol 是否顯示。
 3. 救援成功由 `PlayerShip.getRescueHitboxes()` 與 Idol 救援吸引半徑觸發。
 4. AVAILABLE 狀態從開局就顯示完整人物 panel，group logo badge 只作為輔助標記。
@@ -424,12 +425,12 @@ orbitAngle += orbitSpeed * dt
 7. 同一個 `IdolGroup` 的行星使用 group logo texture，但救援單位使用各自成員人物 texture。
 8. 每幀依玩家 / camera 方向更新 billboard 朝向，確保立牌永遠面向飛機螢幕畫面，人物圖正面可讀。
 9. LevelManager 建立 Idol 後必須立即 `consumer.add(idol)`，GameManager 必須把 idol view 加入 worldRoot；救援 UI 不可取代世界物件本體。
-10. AVAILABLE panel 以目前縮小版立牌為基準放大約 1.7 倍，仍保持直立全息立牌比例，避免大量 Idol 遮擋畫面。
-11. 禁用小型水平 marker / 圓點式 world rescue icon；世界中的救援單位主體必須是大型直立 capsule hologram panel。
-12. `IdolBillboardView` / `RescueUnitView` 必須使用 JavaFX primitive shapes 建立真正的 world object：薄 Box 角色牌本體、portrait 材質面、發光背板、3D 邊框、group logo badge、唱歌 pulse 與 rescued trail；不得以小型水平 marker 或單純 UI card 取代。
+10. AVAILABLE / RESCUED world paper doll 大小改為目前世界立牌的 2 倍，仍保持人物可讀性；此設定只作用於宇宙世界物件，不改變左下角 HUD 已救援牌子大小。
+11. 禁用小型水平 marker / 圓點式 world rescue icon；世界中的救援單位主體必須是清楚可見的直立人物紙片立牌。
+12. `IdolBillboardView` / `RescueUnitView` 必須以 JavaFX `ImageView` 顯示人物 texture，保留透明背景與原比例，並搭配淡光外框、group logo badge、唱歌 pulse 與 rescued trail；不得再使用厚 Box 卡牌本體、方形面板或單純 UI card 取代。
 13. Idol view 必須參與 JavaFX 3D depth buffer，因為它是世界中的實體 / 可遮擋物件；不得使用 `DepthTest.DISABLE` 讓它永遠蓋在行星或敵人上。
-14. 角色牌尺寸調整後，`RescueManager` 的救援半徑、`RescueGroup` 跟隨間距與 rescue hitbox 需一起調整，讓互動範圍符合目前約 1.7 倍大小的立牌。
-15. Idol 的軌道座標必須對齊世界立牌的中心點；`IdolBillboardView` 不可把整張牌向上偏移到讓 orbit position 落在底部或底座。
+14. 人物立牌世界尺寸調整後，`RescueManager` 的救援半徑、`RescueGroup` 跟隨間距與 rescue hitbox 需一起調整，讓互動範圍符合目前 2 倍大小的世界立牌；HUD portrait 尺寸由 `HUDManager` 獨立控制，不跟著改。
+15. Idol 的軌道座標必須對齊世界人物立牌的中心點；`IdolBillboardView` 不可把整張立牌向上偏移到讓 orbit position 落在底部或底座。
 16. GameManager 首次 flush world objects 後輸出 rescue unit debug log，若 AVAILABLE / RESCUED Idol view 為 null、未加入 worldRoot、不可見、opacity < 0.5、沒有 parentPlanet，必須印出 warning。
 
 ### 永久流失

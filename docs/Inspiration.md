@@ -143,6 +143,7 @@ totalScore clamp 0..100
 4. **Drift Mechanics**  
    飄移與旋轉不以機鼻為中心，而是偏向飛船尾部或一角作為視覺軸心，讓轉向更像高速甩尾。
    飛船方向只由鍵盤方向輸入、速度與物理狀態影響；滑鼠移動不改變飛船左右方向，滑鼠只保留射擊等按鍵用途。
+   A / D 左右轉向角速度改為上一版目前值的一半，讓飛船轉向更穩、更有太空慣性感。
 
 5. **尾翼與殘影特效**  
    只有在按下 Shift 或觸發大角度飄移時，尾翼才會產生強烈推進與殘影。
@@ -166,19 +167,19 @@ totalScore clamp 0..100
 
 現況盤點：程式已經有 8 顆非恆星行星，行星使用 `src/main/resources/photo` 的女團 logo texture，音樂使用 `src/main/resources/pop_musics` 的多首歌曲；原先的球形救援目標已改為個別成員 portrait 的直立式全息 billboard。
 
-新版視覺規格：救援目標不再是球體，也不使用厚重橢球。  
-每位 Idol / RescueUnit 必須是一個面向鏡頭的直立式 capsule billboard / hologram panel，像太空中漂浮的全息角色牌。  
-正面使用個別成員人物圖片，外框有發光邊框，底部或角落可附上該團 logo badge。  
-人物圖片必須保持比例，不可橫向拉寬；建議面板比例約 `width : height = 1 : 2.3 ~ 1 : 2.8`，厚度只做視覺暗示，不做厚重 3D 實體。
+新版視覺規格：救援目標不再是球體、厚重橢球、普通卡牌或 UI 卡片。  
+每位 Idol / RescueUnit 必須是一個面向鏡頭的直立式人物紙片人 / 全身立牌，像韓團成員的透明背景立牌漂浮在太空中等待救援。  
+人物圖片本身就是主體 texture，必須保持原比例，不可橫向拉寬或壓扁；若圖片有透明背景，必須保留 alpha，不再把人物塞進方形卡牌或厚面板裡。  
+紙片人可以有很薄的厚度暗示、淡淡發光外框與小型 group logo badge，但不得重新變成普通長方形卡牌。
 每個 Idol 生成時必須立刻建立世界中的 view，並由 LevelManager / GameManager 加入 worldRoot。不能只在救援後顯示 UI 牌子。
 救援單位不需要隱藏，也不需要進入任何範圍才顯示。所有 Idol 從遊戲開始就是 AVAILABLE 狀態，世界場景中必須清楚顯示完整全息立牌，並持續環繞對應行星運動。
 全息立牌必須永遠面向飛機螢幕畫面，不管玩家從哪個方向接近，都應盡量看到人物圖片正面。
-世界中的救援單位不可再使用小型水平 marker、圓點或類似子彈 / 敵人圖示的顯示方式；UI 底部牌子可保留，但 world object 必須是主要可見的直立角色牌。
-程式實作上，世界中的 Idol view 必須使用 JavaFX primitive 組成薄 3D 全息立牌，例如 Box 面板、發光背板、3D 邊框、portrait 材質面與 logo badge；不可只把一個小型 `ImageView` 或水平 marker 放進 worldRoot。未救援角色牌目前以「縮小版立牌」為基準再放大約 1.7 倍，仍保留直立比例與人物圖可讀性，但避免畫面被大量牌子遮住。
+世界中的救援單位不可再使用小型水平 marker、圓點、方形卡牌或類似子彈 / 敵人圖示的顯示方式；UI 底部牌子可保留，但 world object 必須是主要可見的人物紙片立牌。
+程式實作上，世界中的 Idol view 以 JavaFX `ImageView` 顯示人物 texture 並保留透明背景，再搭配發光外框、group logo badge、唱歌 pulse 與 rescued trail；不可用厚 Box 卡牌本體或單純 UI card 取代。世界中的人物紙片立牌大小改為目前的 2 倍，仍保留人物可讀性；這只影響宇宙世界物件，不改變左下角 HUD 已救援牌子的顯示大小。
 救援立牌是世界中的實體阻擋 / 可被遮擋單位，渲染時要參與 JavaFX 3D depth buffer；它不能永遠蓋在行星、敵人或其他世界物件上方。
 每個未救援 Idol 和所屬行星表面的距離改成上一版目前距離的 1/2，讓救援牌更貼近母行星環繞。
 救援牌環繞行星時，軌道位置必須對齊全息立牌的中心點，而不是立牌底部或底座，讓角色牌像真正的衛星物體沿軌道運動。
-救援單位視覺尺寸放大後，救援吸引半徑、隊伍跟隨間距與隊伍 hitbox 也要同步放大；否則畫面看似大立牌，但實際仍像小圓點互動。
+救援單位世界視覺尺寸放大後，救援吸引半徑、隊伍跟隨間距與隊伍 hitbox 也要同步放大；左下角 HUD 牌子尺寸獨立管理，不跟著世界立牌大小變動。
 遊戲啟動後需要輸出 rescue unit debug log，檢查每顆 Planet 的 groupId、成員數、每個 Idol 的 parentPlanet、orbitRadius、orbitAngle、texturePath、view 是否加入 worldRoot、visible、opacity 與 position。
 
 資料來源以集中式 GroupConfig 為準：

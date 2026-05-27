@@ -4,13 +4,14 @@ import com.binge.GameProject.model.IdolState;
 import javafx.scene.DepthTest;
 import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.effect.BlurType;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.effect.GaussianBlur;
 import javafx.scene.image.Image;
-import javafx.scene.image.PixelReader;
-import javafx.scene.image.WritableImage;
+import javafx.scene.image.ImageView;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
-import javafx.scene.shape.Box;
-import javafx.scene.shape.CullFace;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Rotate;
 
@@ -18,85 +19,72 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IdolBillboardView {
-    private static final double VIEW_SCALE = 0.57;
-    private static final double PANEL_WIDTH = 92.0;
-    private static final double PANEL_HEIGHT = 230.0;
-    private static final double PANEL_DEPTH = 8.0;
-    private static final double PANEL_LIFT = 0.0;
-    private static final int PORTRAIT_TEXTURE_WIDTH = 192;
-    private static final int PORTRAIT_TEXTURE_HEIGHT = 480;
-    private static final int BADGE_TEXTURE_SIZE = 96;
+    private static final double VIEW_SCALE = 1.14;
+    private static final double FIGURE_MAX_WIDTH = 132.0;
+    private static final double FIGURE_MAX_HEIGHT = 250.0;
+    private static final double BADGE_SIZE = 34.0;
 
     private final Group root = new Group();
-    private final Group panelGroup = new Group();
+    private final Group figureGroup = new Group();
+    private final Group logoBadge = new Group();
     private final Group trailGroup = new Group();
-    private final List<Node> pulseNodes = new ArrayList<>();
     private final List<Node> trailNodes = new ArrayList<>();
     private final Rotate faceCameraRotate = new Rotate(0, Rotate.Y_AXIS);
     private final Color groupColor;
-    private final Box backGlow;
-    private final Box body;
-    private final Box portraitPanel;
-    private final Box badgePanel;
+    private final ImageView glowSilhouette;
+    private final ImageView portraitView;
+    private final ImageView badgeView;
+    private final Circle badgeHalo;
+    private final DropShadow portraitGlow;
+    private final double figureWidth;
+    private final double figureHeight;
     private IdolState currentState = IdolState.AVAILABLE;
     private double phase;
 
     public IdolBillboardView(Image portrait, Image groupLogo, Color groupColor) {
         this.groupColor = groupColor;
+        double[] size = fitSize(portrait, FIGURE_MAX_WIDTH, FIGURE_MAX_HEIGHT);
+        this.figureWidth = size[0];
+        this.figureHeight = size[1];
+
         root.setDepthTest(DepthTest.ENABLE);
         root.setMouseTransparent(true);
         root.getTransforms().add(faceCameraRotate);
 
-        panelGroup.setTranslateY(PANEL_LIFT);
-        panelGroup.setDepthTest(DepthTest.ENABLE);
+        figureGroup.setDepthTest(DepthTest.ENABLE);
 
-        backGlow = new Box(PANEL_WIDTH + 76, PANEL_HEIGHT + 116, 3);
-        backGlow.setCullFace(CullFace.NONE);
-        backGlow.setMaterial(material(groupColor.deriveColor(0, 0.72, 1.8, 1.0)));
-        backGlow.setOpacity(0.24);
-        backGlow.setTranslateZ(20);
+        glowSilhouette = createFigureImage(portrait, figureWidth, figureHeight);
+        glowSilhouette.setOpacity(0.22);
+        glowSilhouette.setEffect(new GaussianBlur(16));
 
-        body = new Box(PANEL_WIDTH, PANEL_HEIGHT, PANEL_DEPTH);
-        body.setCullFace(CullFace.NONE);
-        body.setMaterial(material(Color.web("#06131c")));
-        body.setOpacity(0.86);
+        portraitGlow = new DropShadow(
+                BlurType.GAUSSIAN,
+                groupColor.deriveColor(0, 0.95, 1.65, 0.95),
+                22,
+                0.45,
+                0,
+                0
+        );
+        portraitView = createFigureImage(portrait, figureWidth, figureHeight);
+        portraitView.setEffect(portraitGlow);
 
-        portraitPanel = new Box(PANEL_WIDTH * 0.78, PANEL_HEIGHT * 0.82, 4);
-        portraitPanel.setCullFace(CullFace.NONE);
-        portraitPanel.setTranslateY(-PANEL_HEIGHT * 0.045);
-        portraitPanel.setTranslateZ(-PANEL_DEPTH * 0.72);
-        portraitPanel.setMaterial(textureMaterial(createPreservedRatioTexture(
-                portrait, PORTRAIT_TEXTURE_WIDTH, PORTRAIT_TEXTURE_HEIGHT, Color.web("#071722"))));
+        badgeHalo = new Circle(BADGE_SIZE * 0.56);
+        badgeHalo.setFill(groupColor.deriveColor(0, 0.78, 1.8, 0.58));
+        badgeHalo.setStroke(Color.web("#dffcff", 0.72));
+        badgeHalo.setStrokeWidth(2.0);
 
-        badgePanel = new Box(PANEL_WIDTH * 0.27, PANEL_WIDTH * 0.27, 5);
-        badgePanel.setCullFace(CullFace.NONE);
-        badgePanel.setTranslateX(PANEL_WIDTH * 0.28);
-        badgePanel.setTranslateY(PANEL_HEIGHT * 0.36);
-        badgePanel.setTranslateZ(-PANEL_DEPTH);
-        badgePanel.setMaterial(textureMaterial(createPreservedRatioTexture(
-                groupLogo, BADGE_TEXTURE_SIZE, BADGE_TEXTURE_SIZE, Color.web("#02070c"))));
-
-        Box badgeFrame = new Box(PANEL_WIDTH * 0.31, PANEL_WIDTH * 0.31, 3);
-        badgeFrame.setCullFace(CullFace.NONE);
-        badgeFrame.setTranslateX(PANEL_WIDTH * 0.28);
-        badgeFrame.setTranslateY(PANEL_HEIGHT * 0.36);
-        badgeFrame.setTranslateZ(-PANEL_DEPTH + 2);
-        badgeFrame.setMaterial(material(Color.web("#dffcff")));
-        badgeFrame.setOpacity(0.36);
-
-        addFrame(PANEL_WIDTH + 18, PANEL_HEIGHT + 18, -PANEL_DEPTH - 2);
-
-        Box pedestal = new Box(PANEL_WIDTH * 0.66, 10, 28);
-        pedestal.setCullFace(CullFace.NONE);
-        pedestal.setTranslateY(PANEL_HEIGHT * 0.52);
-        pedestal.setMaterial(material(groupColor.deriveColor(0, 0.9, 1.9, 1.0)));
-        pedestal.setOpacity(0.76);
-        pulseNodes.add(pedestal);
+        badgeView = createBadgeImage(groupLogo);
+        badgeView.setTranslateX(-BADGE_SIZE / 2.0);
+        badgeView.setTranslateY(-BADGE_SIZE / 2.0);
+        badgeView.setClip(new Circle(BADGE_SIZE / 2.0, BADGE_SIZE / 2.0, BADGE_SIZE / 2.0));
+        logoBadge.getChildren().addAll(badgeHalo, badgeView);
+        logoBadge.setTranslateX(figureWidth * 0.30);
+        logoBadge.setTranslateY(figureHeight * 0.34);
 
         createRescuedTrail();
 
-        panelGroup.getChildren().addAll(backGlow, body, portraitPanel, badgeFrame, badgePanel, pedestal, trailGroup);
-        root.getChildren().add(panelGroup);
+        figureGroup.getChildren().addAll(glowSilhouette, portraitView, logoBadge, trailGroup);
+        root.getChildren().add(figureGroup);
         applyState(IdolState.AVAILABLE);
     }
 
@@ -110,28 +98,30 @@ public class IdolBillboardView {
             applyState(state);
         }
 
-        double floatY = Math.sin(phase * 2.0) * 12.0;
-        panelGroup.setTranslateY(PANEL_LIFT + floatY);
+        double floatY = Math.sin(phase * 2.0) * 10.0;
+        figureGroup.setTranslateY(floatY);
 
         if (state == IdolState.AVAILABLE) {
-            double idlePulse = 0.5 + 0.5 * Math.sin(phase * 3.0);
-            backGlow.setOpacity(0.18 + idlePulse * 0.10);
+            double pulse = 0.5 + 0.5 * Math.sin(phase * 3.0);
+            glowSilhouette.setOpacity(0.16 + pulse * 0.12);
+            badgeHalo.setOpacity(0.46 + pulse * 0.20);
+            portraitGlow.setRadius(18 + pulse * 10);
         } else if (state == IdolState.RESCUED) {
             double trailPulse = 0.5 + 0.5 * Math.sin(phase * 5.0);
             for (int i = 0; i < trailNodes.size(); i++) {
-                trailNodes.get(i).setOpacity(0.16 + trailPulse * (0.16 - i * 0.025));
+                trailNodes.get(i).setOpacity(0.16 + trailPulse * (0.18 - i * 0.028));
             }
         } else if (state == IdolState.SINGING) {
             double pulse = 0.5 + 0.5 * Math.sin(phase * 9.0);
             double scale = 0.84 + pulse * 0.08;
-            panelGroup.setScaleX(scale);
-            panelGroup.setScaleY(scale);
-            panelGroup.setScaleZ(scale);
-            backGlow.setOpacity(0.42 + pulse * 0.22);
-            portraitPanel.setOpacity(0.88 + pulse * 0.12);
-            for (Node node : pulseNodes) {
-                node.setOpacity(0.72 + pulse * 0.28);
-            }
+            figureGroup.setScaleX(scale);
+            figureGroup.setScaleY(scale);
+            figureGroup.setScaleZ(scale);
+            glowSilhouette.setOpacity(0.38 + pulse * 0.24);
+            badgeHalo.setOpacity(0.76 + pulse * 0.20);
+            portraitView.setOpacity(0.90 + pulse * 0.10);
+            portraitGlow.setRadius(28 + pulse * 18);
+            portraitGlow.setSpread(0.42 + pulse * 0.18);
         } else if (state == IdolState.LOST) {
             root.setOpacity(Math.max(0, root.getOpacity() - dt * 2.6));
             double spread = 1.0 + dt * 1.25;
@@ -152,78 +142,50 @@ public class IdolBillboardView {
         root.setScaleX(VIEW_SCALE);
         root.setScaleY(VIEW_SCALE);
         root.setScaleZ(VIEW_SCALE);
-        panelGroup.setScaleX(1.0);
-        panelGroup.setScaleY(1.0);
-        panelGroup.setScaleZ(1.0);
-        panelGroup.setVisible(true);
-        portraitPanel.setOpacity(1.0);
+        figureGroup.setVisible(true);
+        figureGroup.setOpacity(1.0);
+        figureGroup.setScaleX(1.0);
+        figureGroup.setScaleY(1.0);
+        figureGroup.setScaleZ(1.0);
+        portraitView.setOpacity(1.0);
+        glowSilhouette.setOpacity(0.22);
+        badgeHalo.setOpacity(0.58);
+        portraitGlow.setRadius(22);
+        portraitGlow.setSpread(0.45);
 
         switch (state) {
             case AVAILABLE -> {
-                panelGroup.setOpacity(1.0);
-                body.setOpacity(0.88);
-                backGlow.setOpacity(0.24);
                 trailGroup.setVisible(false);
-                for (Node node : pulseNodes) node.setOpacity(0.78);
+                logoBadge.setOpacity(0.94);
             }
             case RESCUED -> {
-                panelGroup.setOpacity(0.96);
-                panelGroup.setScaleX(0.82);
-                panelGroup.setScaleY(0.82);
-                panelGroup.setScaleZ(0.82);
-                body.setOpacity(0.76);
-                backGlow.setOpacity(0.32);
+                figureGroup.setOpacity(0.96);
+                figureGroup.setScaleX(0.82);
+                figureGroup.setScaleY(0.82);
+                figureGroup.setScaleZ(0.82);
+                glowSilhouette.setOpacity(0.28);
+                logoBadge.setOpacity(0.82);
                 trailGroup.setVisible(true);
-                for (Node node : pulseNodes) node.setOpacity(0.62);
             }
             case SINGING -> {
-                panelGroup.setOpacity(1.0);
-                body.setOpacity(0.88);
-                backGlow.setOpacity(0.54);
+                figureGroup.setOpacity(1.0);
+                logoBadge.setOpacity(1.0);
+                glowSilhouette.setOpacity(0.46);
                 trailGroup.setVisible(true);
             }
             case LOST -> {
-                panelGroup.setOpacity(0.72);
-                body.setOpacity(0.32);
-                backGlow.setOpacity(0.58);
-                portraitPanel.setOpacity(0.48);
+                figureGroup.setOpacity(0.68);
+                portraitView.setOpacity(0.48);
+                glowSilhouette.setOpacity(0.54);
+                logoBadge.setOpacity(0.42);
                 trailGroup.setVisible(false);
             }
         }
     }
 
-    private void addFrame(double width, double height, double z) {
-        double sideThickness = 8.0;
-        double capThickness = 10.0;
-
-        Box left = frameBox(sideThickness, height, z);
-        left.setTranslateX(-width / 2);
-        Box right = frameBox(sideThickness, height, z);
-        right.setTranslateX(width / 2);
-        Box top = frameBox(width, capThickness, z);
-        top.setTranslateY(-height / 2);
-        Box bottom = frameBox(width, capThickness, z);
-        bottom.setTranslateY(height / 2);
-
-        panelGroup.getChildren().addAll(left, right, top, bottom);
-        pulseNodes.add(left);
-        pulseNodes.add(right);
-        pulseNodes.add(top);
-        pulseNodes.add(bottom);
-    }
-
-    private Box frameBox(double width, double height, double z) {
-        Box box = new Box(width, height, 8);
-        box.setCullFace(CullFace.NONE);
-        box.setTranslateZ(z);
-        box.setMaterial(material(groupColor.deriveColor(0, 0.82, 2.0, 1.0)));
-        box.setOpacity(0.86);
-        return box;
-    }
-
     private void createRescuedTrail() {
         trailGroup.setTranslateZ(34);
-        trailGroup.setTranslateY(PANEL_HEIGHT * 0.18);
+        trailGroup.setTranslateY(figureHeight * 0.22);
         for (int i = 0; i < 4; i++) {
             Sphere spark = new Sphere(8 - i * 1.2);
             spark.setTranslateX((i % 2 == 0 ? -1 : 1) * (18 + i * 8));
@@ -237,58 +199,44 @@ public class IdolBillboardView {
         trailGroup.setVisible(false);
     }
 
+    private ImageView createFigureImage(Image image, double width, double height) {
+        ImageView view = new ImageView(image);
+        view.setPreserveRatio(true);
+        view.setSmooth(true);
+        view.setCache(true);
+        view.setFitWidth(width);
+        view.setFitHeight(height);
+        view.setTranslateX(-width / 2.0);
+        view.setTranslateY(-height / 2.0);
+        view.setDepthTest(DepthTest.ENABLE);
+        return view;
+    }
+
     private PhongMaterial material(Color color) {
         PhongMaterial material = new PhongMaterial(color);
         material.setSpecularColor(Color.WHITE);
-        material.setSpecularPower(48);
+        material.setSpecularPower(40);
         return material;
     }
 
-    private PhongMaterial textureMaterial(Image image) {
-        PhongMaterial material = new PhongMaterial(Color.WHITE);
-        material.setDiffuseMap(image);
-        material.setSelfIlluminationMap(image);
-        material.setSpecularColor(Color.WHITE);
-        material.setSpecularPower(28);
-        return material;
+    private ImageView createBadgeImage(Image image) {
+        ImageView view = new ImageView(image);
+        view.setPreserveRatio(true);
+        view.setSmooth(true);
+        view.setCache(true);
+        view.setFitWidth(BADGE_SIZE);
+        view.setFitHeight(BADGE_SIZE);
+        view.setDepthTest(DepthTest.ENABLE);
+        return view;
     }
 
-    private Image createPreservedRatioTexture(Image source, int targetWidth, int targetHeight, Color background) {
-        WritableImage output = new WritableImage(targetWidth, targetHeight);
-        for (int y = 0; y < targetHeight; y++) {
-            for (int x = 0; x < targetWidth; x++) {
-                double vignette = 0.82 + 0.18 * (1.0 - Math.abs((x / (double) targetWidth) - 0.5) * 2.0);
-                output.getPixelWriter().setColor(x, y, Color.color(
-                        background.getRed() * vignette,
-                        background.getGreen() * vignette,
-                        background.getBlue() * vignette,
-                        1.0
-                ));
-            }
-        }
-
-        if (source == null || source.isError() || source.getWidth() <= 1 || source.getHeight() <= 1) {
-            return output;
-        }
-
-        PixelReader reader = source.getPixelReader();
-        if (reader == null) {
-            return output;
-        }
-
-        double scale = Math.min(targetWidth / source.getWidth(), targetHeight / source.getHeight());
-        int drawWidth = Math.max(1, (int) Math.round(source.getWidth() * scale));
-        int drawHeight = Math.max(1, (int) Math.round(source.getHeight() * scale));
-        int offsetX = (targetWidth - drawWidth) / 2;
-        int offsetY = (targetHeight - drawHeight) / 2;
-
-        for (int y = 0; y < drawHeight; y++) {
-            int sourceY = Math.min((int) (y / scale), (int) source.getHeight() - 1);
-            for (int x = 0; x < drawWidth; x++) {
-                int sourceX = Math.min((int) (x / scale), (int) source.getWidth() - 1);
-                output.getPixelWriter().setColor(offsetX + x, offsetY + y, reader.getColor(sourceX, sourceY));
-            }
-        }
-        return output;
+    private double[] fitSize(Image image, double maxWidth, double maxHeight) {
+        double sourceWidth = image == null || image.getWidth() <= 1 ? 96.0 : image.getWidth();
+        double sourceHeight = image == null || image.getHeight() <= 1 ? 192.0 : image.getHeight();
+        double scale = Math.min(maxWidth / sourceWidth, maxHeight / sourceHeight);
+        return new double[]{
+                Math.max(36.0, sourceWidth * scale),
+                Math.max(86.0, sourceHeight * scale)
+        };
     }
 }

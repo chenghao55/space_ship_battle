@@ -7,8 +7,8 @@ import com.binge.GameProject.physics.Hitbox;
 import java.util.List;
 
 public class RescueManager {
-    private static final double IDOL_BODY_RADIUS = 26.5;
-    private static final double RESCUE_ATTRACTION_EXTRA_RADIUS = 42.0;
+    private static final double IDOL_BODY_RADIUS = 53.0;
+    private static final double RESCUE_ATTRACTION_EXTRA_RADIUS = 84.0;
     private String lastEventText = "";
     private double lastEventTimer = 0;
     private int totalRescuedCount;
