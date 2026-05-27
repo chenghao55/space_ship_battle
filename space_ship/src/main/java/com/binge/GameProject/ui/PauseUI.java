@@ -120,7 +120,6 @@ public class PauseUI {
         settingsPanel.getChildren().addAll(
             settingsTitle,
             sliderVolume,
-            new Text("GRAPHICS: CINEMATIC"),
             btnDisplayMode,
             btnBack
         );

@@ -40,7 +40,7 @@ public class MainMenuUI {
         menuPanel.setAlignment(Pos.CENTER);
         
         // 標題 (Title)
-        Text title = new Text("GRAVITY DRIFT");
+        Text title = new Text("K-pop Universe");
         title.setFont(new Font("Consolas", 90));
         title.setFill(Color.web("#ffffff"));
         DropShadow titleGlow = new DropShadow(40, Color.web("#00ffff"));
@@ -48,7 +48,7 @@ public class MainMenuUI {
         title.setEffect(titleGlow);
         
         // 副標題 (Subtitle)
-        Text subtitle = new Text("O R B I T A L   C O M B A T   I N I T I A T I V E");
+        Text subtitle = new Text("When your idol is drifting...");
         subtitle.setFont(new Font("Consolas", 24));
         subtitle.setFill(Color.web("#888888"));
         
